@@ -1,6 +1,8 @@
 import express from "express";
 import path from "path";
 import * as oidc from "oidc-provider";
+import interactions from './routes/interactions';
+import { DemoAccountSource } from "./account/DemoAccountSoure";
 
 const app = express();
 const port = process.env.PORT || 6060;
@@ -9,6 +11,7 @@ const port = process.env.PORT || 6060;
 const viewsPath = path.join(__dirname, "../src/views");
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.set("views", viewsPath);
 app.set("view engine", "pug");
 
@@ -24,9 +27,14 @@ const provider = new oidc.Provider("http://localhost:6060", {
       ]
     }
   ],
-  scopes: ['openid', 'pid:sd_jwt_dc']
+  scopes: ['openid', 'pid:sd_jwt_dc'],
+  features: {
+    devInteractions: { enabled: false }
+  }
 });
+const acSource = new DemoAccountSource();
 
+interactions(app, provider, acSource);
 app.use("/", provider.callback());
 
 app.listen(port, () => {

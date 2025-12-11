@@ -1,0 +1,106 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Wallet AS · Consent
+    style.
+      :root { color-scheme: light; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        background: radial-gradient(circle at 20% 20%, #f8f9fb, #e7ecf5);
+        color: #1a1f36;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      main {
+        width: min(680px, 100%);
+        padding: 32px 40px;
+        border-radius: 18px;
+        box-shadow: 0 12px 50px rgba(26, 31, 54, 0.08);
+        background: #ffffff;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0 0 16px;
+        line-height: 1.55;
+        color: #4d5675;
+      }
+      ul {
+        padding-left: 20px;
+        margin: 8px 0 16px;
+        color: #1a1f36;
+      }
+      .chips {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .chip {
+        padding: 6px 10px;
+        border-radius: 10px;
+        background: #f0f3fa;
+        border: 1px solid #dce2f0;
+        color: #4d5675;
+        font-size: 14px;
+      }
+      form {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+      }
+      button {
+        appearance: none;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+      }
+      button[type="submit"] {
+        background: linear-gradient(135deg, #4b7bec, #3257d3);
+        color: #fff;
+      }
+      button[type="button"], button.secondary {
+        background: #eef1f8;
+        color: #1a1f36;
+        border: 1px solid #dce2f0;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 30px rgba(50, 87, 211, 0.18);
+      }
+  body
+    main
+      h1 Allow access?
+      p
+        | Client
+        strong  #{client.clientId || client.client_id}
+        |  is requesting permission.
+      .chips
+        if params.scope
+          span.chip Scope: #{params.scope}
+        if params.redirect_uri
+          span.chip Redirect: #{params.redirect_uri}
+      if details && details.scopes
+        p Scopes requested:
+        ul
+          each scope in details.scopes
+            li= scope
+      form(method="post", action=`/interaction/${uid}/confirm`)
+        input(type="hidden", name="uid", value=uid)
+        button(type="submit") Approve
+        button(type="button", class="secondary", onclick=`document.getElementById('abort-form').submit()`) Deny
+      form#abort-form(method="post", action=`/interaction/${uid}/abort`)
+        input(type="hidden", name="uid", value=uid)
