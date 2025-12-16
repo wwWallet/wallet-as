@@ -3,108 +3,60 @@ html(lang="en")
   head
     meta(charset="UTF-8")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    title Wallet AS · Login
-    style.
-      :root { color-scheme: light; }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        font-family: "Helvetica Neue", Arial, sans-serif;
-        background: radial-gradient(circle at 20% 20%, #f8f9fb, #e7ecf5);
-        color: #1a1f36;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      main {
-        width: min(640px, 100%);
-        padding: 32px 40px;
-        border-radius: 18px;
-        box-shadow: 0 12px 50px rgba(26, 31, 54, 0.08);
-        background: #ffffff;
-      }
-      h1 {
-        margin: 0 0 8px;
-        font-size: 28px;
-        letter-spacing: -0.02em;
-      }
-      p {
-        margin: 0 0 16px;
-        line-height: 1.55;
-        color: #4d5675;
-      }
-      form {
-        display: grid;
-        gap: 12px;
-        margin-top: 12px;
-      }
-      label {
-        display: grid;
-        gap: 6px;
-        font-weight: 600;
-        color: #1a1f36;
-      }
-      input {
-        padding: 12px 14px;
-        border-radius: 10px;
-        border: 1px solid #d3d9e8;
-        font-size: 15px;
-        transition: border-color 150ms ease, box-shadow 150ms ease;
-      }
-      input:focus {
-        outline: none;
-        border-color: #4b7bec;
-        box-shadow: 0 0 0 3px rgba(75, 123, 236, 0.15);
-      }
-      button {
-        appearance: none;
-        border: none;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #4b7bec, #3257d3);
-        color: #fff;
-        font-weight: 700;
-        padding: 12px 16px;
-        cursor: pointer;
-        font-size: 15px;
-        transition: transform 120ms ease, box-shadow 120ms ease;
-      }
-      button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 12px 30px rgba(50, 87, 211, 0.25);
-      }
-      .client-meta {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin: 12px 0 0;
-        color: #4d5675;
-        font-size: 14px;
-      }
-      .chip {
-        padding: 6px 10px;
-        border-radius: 10px;
-        background: #f0f3fa;
-        border: 1px solid #dce2f0;
-      }
+    title Wallet AS · Sign in
+    link(rel="stylesheet", href="/styles/base.css")
+    link(rel="stylesheet", href="/styles/login.css")
+
   body
-    main
-      h1 Sign in
-      p
-        | Request from client
-        strong  #{client.clientId || client.client_id}
-      .client-meta
-        if params.scope
-          span.chip Scope: #{params.scope}
-        if params.redirect_uri
-          span.chip Redirect: #{params.redirect_uri}
-      if error
-        p(style="color:#c0392b; font-weight:600; margin: 8px 0 0") #{error}
-      form(method="post", action=`/interaction/${uid}/login`)
-        input(type="hidden", name="uid", value=uid)
-        label(for="login")
-          span User
-          input(type="text", name="login", id="login", autocomplete="username", required=true, placeholder="username or email", value=login)
-        label(for="password")
-          span Password
-          input(type="password", name="password", id="password", autocomplete="current-password", required=true, placeholder="••••••••")
-        button(type="submit") Continue
+    - const clientName = (client.clientId || client.client_id || 'Client');
+    - const clientInitial = (clientName && clientName.trim().charAt(0).toUpperCase()) || 'C';
+
+    .login-page
+      .login-header
+        .login__logo-circle
+          if client.logoUri
+            img.login__logo-img(
+              src=client.logoUri,
+              alt=clientName + ' logo',
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+            )
+            .login__logo-fallback #{clientInitial}
+          else
+            .login__logo-fallback(style="display:flex") #{clientInitial}
+
+        h1.login__title Sign in
+        p.login__subtitle
+          | Continue to&nbsp;
+          strong #{clientName}
+
+      main.login
+        if error
+          p.login__error #{error}
+
+        form.login__form(method="post", action=`/interaction/${uid}/login`)
+          input(type="hidden", name="uid", value=uid)
+
+          .login__field-group
+            label.login__label(for="login") Username or email
+            input.login__input(
+              type="text",
+              name="login",
+              id="login",
+              autocomplete="username",
+              required=true,
+              value=login,
+              placeholder="Enter your username or email"
+            )
+
+          .login__field-group
+            label.login__label(for="password") Password
+            input.login__input(
+              type="password",
+              name="password",
+              id="password",
+              autocomplete="current-password",
+              required=true,
+              placeholder="Enter your password"
+            )
+
+          button.login__submit(type="submit") Sign in

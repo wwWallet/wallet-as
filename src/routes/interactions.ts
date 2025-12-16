@@ -10,6 +10,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
         } = await provider.interactionDetails(req, res);
 
         const client = await provider.Client.find(params.client_id as string);
+      console.log('!!!',uid, prompt, params, session,client)
 
         switch (prompt.name) {
           case 'login': {
@@ -21,7 +22,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
             });
           }
           case 'consent': {
-            return res.render('interaction', {
+            return res.render('consent', {
               client,
               uid,
               details: prompt.details,

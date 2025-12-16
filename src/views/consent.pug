@@ -1,0 +1,54 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Wallet AS · Consent
+    link(rel="stylesheet", href="/styles/base.css")
+    link(rel="stylesheet", href="/styles/consent.css")
+
+  body
+    - const clientName = ( client.clientId || client.client_id || 'Client');
+    - const redirectUri = params.redirect_uri;
+
+    .consent-page
+      .consent-header
+        .consent__connection
+          .consent__app-circle AS
+          .consent__connector
+            span ✔
+          .consent__app-circle
+            if client.logoUri
+              img(src=client.logoUri, alt=clientName + ' logo')
+            else
+              span #{clientName.charAt(0).toUpperCase()}
+
+        h1.consent__title Authorize #{clientName}
+
+      main.consent
+        .consent__card
+          p.consent__request
+            strong #{clientName}
+            |  wants to access your account.
+
+          if details && details.scopes
+            ul.consent__permissions
+              each scope in details.scopes
+                li
+                  span.consent__permission-title= scope
+                  span.consent__permission-desc Access granted
+
+        .consent__actions
+          form(method="post", action=`/interaction/${uid}/abort`)
+            input(type="hidden", name="uid", value=uid)
+            button.consent__deny(type="submit") Cancel
+
+          form(method="post", action=`/interaction/${uid}/confirm`)
+            input(type="hidden", name="uid", value=uid)
+            button.consent__approve(type="submit") Authorize
+
+        if redirectUri
+          p.consent__redirect
+            | Authorizing will redirect to
+            br
+            strong #{redirectUri}

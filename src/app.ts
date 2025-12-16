@@ -10,6 +10,9 @@ const port = process.env.PORT || 6060;
 // Keep templates alongside source for both ts-node and compiled runs.
 const viewsPath = path.join(__dirname, "../src/views");
 
+// Serve static files
+app.use(express.static(path.join(process.cwd(), "public")));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set("views", viewsPath);
@@ -24,7 +27,8 @@ const provider = new oidc.Provider("http://localhost:6060", {
       "client_secret": "test",
       "redirect_uris": [
         "http://localhost:9876/callback"
-      ]
+      ],
+      "logo_uri": "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
     }
   ],
   scopes: ['openid', 'pid:sd_jwt_dc'],
