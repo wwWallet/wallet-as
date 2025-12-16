@@ -1,0 +1,231 @@
+.consent-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.consent-header {
+  width: min(680px, 100%);
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.consent__connection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.consent__app-circle {
+  width: clamp(60px, 20vw, 100px);
+  height: clamp(60px, 20vw, 100px);
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-weight: 450;
+  font-size: clamp(14px, 3.5vw, 25px);
+  color: var(--text-primary);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+
+.consent__app-circle img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+.consent__connector {
+  position: relative;
+  width: 78px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.consent__connector::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  border-top: 2px dashed #d0d7de;
+}
+
+.consent__connector span {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #2ea44f;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 6px 18px rgba(46, 164, 79, 0.22);
+}
+
+.consent__title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 450;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.consent {
+  width: min(400px, 100%);
+  padding: 22px 22px 18px;
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  animation: fadeIn 280ms ease;
+}
+
+.consent__card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 18px 18px;
+  margin-bottom: 18px;
+}
+
+.consent__request {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.consent__request strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.consent__permissions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.consent__permissions li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.consent__permissions li:first-child {
+  border-top: none;
+}
+
+.consent__permission-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.consent__permission-desc {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 450;
+  background: #fff7cc;
+  color: #7a5c00;
+  border: 1px solid rgba(122, 92, 0, 0.12);
+  white-space: nowrap;
+}
+
+.consent__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.consent__actions form {
+  flex: 1;
+  min-width: 160px;
+}
+
+.consent__approve,
+.consent__deny {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.consent__approve {
+  border: none;
+  background: #2ea44f;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(46, 164, 79, 0.16);
+}
+
+.consent__approve:hover {
+  background: #2c974b;
+}
+
+.consent__approve:active {
+  transform: translateY(1px);
+}
+
+.consent__deny {
+  background: #f3f4f6;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.consent__deny:hover {
+  background: #e8ebf3;
+}
+
+.consent__redirect {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.consent__redirect strong {
+  color: var(--text-primary);
+  font-weight: 500;
+  word-break: break-all;
+}
+
+@media (max-width: 520px) {
+  .consent__title {
+    font-size: 24px;
+  }
+
+  .consent {
+    padding: 18px 16px 16px;
+  }
+
+  .consent__card {
+    padding: 16px 14px;
+  }
+
+  .consent__connector {
+    width: 62px;
+  }
+}

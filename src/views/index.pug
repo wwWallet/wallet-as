@@ -4,35 +4,26 @@ html(lang="en")
     meta(charset="UTF-8")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
     title Wallet AS
-    style.
-      :root { color-scheme: light; }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        font-family: "Helvetica Neue", Arial, sans-serif;
-        background: radial-gradient(circle at 20% 20%, #f8f9fb, #e7ecf5);
-        color: #1a1f36;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      main {
-        max-width: 560px;
-        padding: 32px 40px;
-        border-radius: 18px;
-        box-shadow: 0 12px 50px rgba(26, 31, 54, 0.08);
-        background: #ffffff;
-      }
-      h1 {
-        margin: 0 0 12px;
-        font-size: 32px;
-        letter-spacing: -0.02em;
-      }
-      p {
-        margin: 0 0 16px;
-        line-height: 1.55;
-        color: #4d5675;
-      }
+    link(rel="stylesheet", href="/styles/base.css")
+    link(rel="stylesheet", href="/styles/index.css")
+
   body
-    main
-      h1 Hello from Wallet AS
+    main.home
+      header.home__header
+        h1.home__title Wallet Authorization Server
+        p.home__subtitle
+          | Secure authentication and authorization services for Wallet clients.
+
+      section.home__content
+        p
+          | This service provides OpenID Connect and OAuth 2.0 flows used by
+          | trusted wallet applications and relying parties.
+
+        ul.home__list
+          li Client authentication & consent handling
+          li Secure login and session management
+          li Standards-compliant OpenID Connect endpoints
+
+      footer.home__footer
+        p
+          | © #{new Date().getFullYear()} Wallet AS
