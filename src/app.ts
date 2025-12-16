@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import * as oidc from "oidc-provider";
-import interactions from './routes/interactions';
+import interactions from "./routes/interactions";
 import { DemoAccountSource } from "./account/DemoAccountSoure";
 
 const app = express();
@@ -20,6 +20,20 @@ app.set("view engine", "pug");
 
 app.get("/", (_req, res) => res.render("index"));
 
+async function introspectionAllowedPolicy(
+  ctx: oidc.KoaContextWithOIDC,
+  client: oidc.Client,
+  token: oidc.AccessToken | oidc.ClientCredentials | oidc.RefreshToken,
+) {
+  if (client.clientAuthMethod !== "client_secret_basic") {
+    return false;
+  }
+  if (token.clientId !== ctx?.oidc?.client?.clientId) {
+    return false;
+  }
+  return true;
+}
+
 const provider = new oidc.Provider("http://localhost:6060", {
   clients: [
     {
@@ -33,8 +47,12 @@ const provider = new oidc.Provider("http://localhost:6060", {
   ],
   scopes: ['openid', 'pid:sd_jwt_dc'],
   features: {
-    devInteractions: { enabled: false }
-  }
+    devInteractions: { enabled: false },
+    introspection: {
+      enabled: true,
+      allowedPolicy: introspectionAllowedPolicy,
+    },
+  },
 });
 const acSource = new DemoAccountSource();
 
