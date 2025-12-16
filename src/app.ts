@@ -3,6 +3,7 @@ import path from "path";
 import * as oidc from "oidc-provider";
 import interactions from "./routes/interactions";
 import { DemoAccountSource } from "./account/DemoAccountSoure";
+import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
 
 const app = express();
 const port = process.env.PORT || 6060;
@@ -20,19 +21,6 @@ app.set("view engine", "pug");
 
 app.get("/", (_req, res) => res.render("index"));
 
-async function introspectionAllowedPolicy(
-  ctx: oidc.KoaContextWithOIDC,
-  client: oidc.Client,
-  token: oidc.AccessToken | oidc.ClientCredentials | oidc.RefreshToken,
-) {
-  if (client.clientAuthMethod !== "client_secret_basic") {
-    return false;
-  }
-  if (token.clientId !== ctx?.oidc?.client?.clientId) {
-    return false;
-  }
-  return true;
-}
 
 const provider = new oidc.Provider("http://localhost:6060", {
   clients: [
