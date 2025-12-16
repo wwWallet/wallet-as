@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import * as oidc from "oidc-provider";
 import interactions from "./routes/interactions";
-import { DemoAccountSource } from "./account/DemoAccountSoure";
+import { DemoAccountSource } from "./account/DemoAccountSource";
 import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
 
 const app = express();
