@@ -40,6 +40,9 @@ const provider = new oidc.Provider("http://localhost:6060", {
       enabled: true,
       allowedPolicy: introspectionAllowedPolicy,
     },
+    jwtResponseModes: {
+      enabled: true
+    }
   },
 });
 const acSource = new DemoAccountSource();
