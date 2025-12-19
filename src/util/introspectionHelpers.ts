@@ -1,6 +1,7 @@
 import * as oidc from "oidc-provider";
+import config from "../config";
 
-export async function introspectionAllowedPolicy(
+export function introspectionAllowedPolicy(
   ctx: oidc.KoaContextWithOIDC,
   client: oidc.Client,
   token: oidc.AccessToken | oidc.ClientCredentials | oidc.RefreshToken,
@@ -8,7 +9,7 @@ export async function introspectionAllowedPolicy(
   if (client.clientAuthMethod !== "client_secret_basic") {
     return false;
   }
-  if (token.clientId !== ctx?.oidc?.client?.clientId) {
+  if ((token.clientId !== client?.clientId) && (client?.clientId !== config?.introspectionClient)) {
     return false;
   }
   return true;

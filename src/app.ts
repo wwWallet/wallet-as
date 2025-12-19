@@ -4,7 +4,7 @@ import * as oidc from "oidc-provider";
 import interactions from "./routes/interactions";
 import { DemoAccountSource } from "./account/DemoAccountSource";
 import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
-
+import config from "./config";
 const app = express();
 const port = process.env.PORT || 6060;
 
@@ -20,20 +20,35 @@ app.set("views", viewsPath);
 app.set("view engine", "pug");
 
 app.get("/", (_req, res) => res.render("index"));
+const oidClients: oidc.ClientMetadata[] = [
+  {
+    client_id: "test",
+    client_secret: "test",
+    redirect_uris: ["http://localhost:9876/callback"],
+    logo_uri:
+      "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
+  },
+  {
+    client_id: "test2",
+    client_secret: "test2",
+    redirect_uris: ["http://localhost:9876/callback"],
+    logo_uri:
+      "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
+  },
+];
 
+if (config.introspectionClient && config.introspectionClientSecret) {
+  console.log("Adding introspection client");
+  oidClients.push({
+    client_id: config.introspectionClient,
+    client_secret: config.introspectionClientSecret,
+    redirect_uris: ['http://localhost']
+  });
+}
 
 const provider = new oidc.Provider("http://localhost:6060", {
-  clients: [
-    {
-      "client_id": "test",
-      "client_secret": "test",
-      "redirect_uris": [
-        "http://localhost:9876/callback"
-      ],
-      "logo_uri": "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-    }
-  ],
-  scopes: ['openid', 'pid:sd_jwt_dc'],
+  clients: oidClients,
+  scopes: ["openid", "pid:sd_jwt_dc"],
   features: {
     devInteractions: { enabled: false },
     introspection: {
@@ -41,8 +56,8 @@ const provider = new oidc.Provider("http://localhost:6060", {
       allowedPolicy: introspectionAllowedPolicy,
     },
     jwtResponseModes: {
-      enabled: true
-    }
+      enabled: true,
+    },
   },
 });
 const acSource = new DemoAccountSource();
