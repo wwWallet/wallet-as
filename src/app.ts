@@ -35,6 +35,13 @@ const oidClients: oidc.ClientMetadata[] = [
     logo_uri:
       "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
   },
+  {
+    client_id: "1233",
+    token_endpoint_auth_method: "none",
+    redirect_uris: ["http://localhost:3000/"],
+    logo_uri:
+      "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
+  },
 ];
 
 if (config.introspectionClient && config.introspectionClientSecret) {
@@ -48,7 +55,7 @@ if (config.introspectionClient && config.introspectionClientSecret) {
 
 const provider = new oidc.Provider("http://localhost:6060", {
   clients: oidClients,
-  scopes: ["openid", "pid:sd_jwt_dc"],
+  scopes: ["openid", "pid:sd_jwt_dc", "pid:mso_mdoc"],
   features: {
     devInteractions: { enabled: false },
     introspection: {
@@ -58,6 +65,9 @@ const provider = new oidc.Provider("http://localhost:6060", {
     jwtResponseModes: {
       enabled: true,
     },
+    pushedAuthorizationRequests: {
+      enabled: true
+    }
   },
 });
 const acSource = new DemoAccountSource();
