@@ -8,7 +8,7 @@
     "start": "node dist/app.js",
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "test": "node -r ts-node/register test/interactions.test.ts"
+    "test:unit": "vitest"
   },
   "author": "",
   "license": "BSD-2-Clause",
