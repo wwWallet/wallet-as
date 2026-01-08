@@ -5,76 +5,84 @@ import interactions from "./routes/interactions";
 import { DemoAccountSource } from "./account/DemoAccountSource";
 import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
 import config from "./config";
-const app = express();
-const port = process.env.PORT || 6060;
 
-// Keep templates alongside source for both ts-node and compiled runs.
-const viewsPath = path.join(__dirname, "../src/views");
+export function createApp() {
+  const app = express();
 
-// Serve static files
-app.use(express.static(path.join(process.cwd(), "public")));
+  // Keep templates alongside source for both ts-node and compiled runs.
+  const viewsPath = path.join(__dirname, "../src/views");
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.set("views", viewsPath);
-app.set("view engine", "pug");
+  // Serve static files
+  app.use(express.static(path.join(process.cwd(), "public")));
 
-app.get("/", (_req, res) => res.render("index"));
-const oidClients: oidc.ClientMetadata[] = [
-  {
-    client_id: "test",
-    client_secret: "test",
-    redirect_uris: ["http://localhost:9876/callback"],
-    logo_uri:
-      "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-  },
-  {
-    client_id: "test2",
-    client_secret: "test2",
-    redirect_uris: ["http://localhost:9876/callback"],
-    logo_uri:
-      "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-  },
-  {
-    client_id: "1233",
-    token_endpoint_auth_method: "none",
-    redirect_uris: ["http://localhost:3000/"],
-    logo_uri:
-      "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-  },
-];
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.set("views", viewsPath);
+  app.set("view engine", "pug");
 
-if (config.introspectionClient && config.introspectionClientSecret) {
-  console.log("Adding introspection client");
-  oidClients.push({
-    client_id: config.introspectionClient,
-    client_secret: config.introspectionClientSecret,
-    redirect_uris: ['http://localhost']
+  app.get("/", (_req, res) => res.render("index"));
+  const oidClients: oidc.ClientMetadata[] = [
+    {
+      client_id: "test",
+      client_secret: "test",
+      redirect_uris: ["http://localhost:9876/callback"],
+      logo_uri:
+        "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
+    },
+    {
+      client_id: "test2",
+      client_secret: "test2",
+      redirect_uris: ["http://localhost:9876/callback"],
+      logo_uri:
+        "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
+    },
+    {
+      client_id: "1233",
+      token_endpoint_auth_method: "none",
+      redirect_uris: ["http://localhost:3000/"],
+      logo_uri:
+        "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
+    },
+  ];
+
+  if (config.introspectionClient && config.introspectionClientSecret) {
+    console.log("Adding introspection client");
+    oidClients.push({
+      client_id: config.introspectionClient,
+      client_secret: config.introspectionClientSecret,
+      redirect_uris: ["http://localhost"],
+    });
+  }
+
+  const provider = new oidc.Provider("http://localhost:6060", {
+    clients: oidClients,
+    scopes: ["openid", "pid:sd_jwt_dc", "pid:mso_mdoc"],
+    features: {
+      devInteractions: { enabled: false },
+      introspection: {
+        enabled: true,
+        allowedPolicy: introspectionAllowedPolicy,
+      },
+      jwtResponseModes: {
+        enabled: true,
+      },
+      pushedAuthorizationRequests: {
+        enabled: true,
+      },
+    },
   });
+  const acSource = new DemoAccountSource();
+
+  interactions(app, provider, acSource);
+  app.use("/", provider.callback());
+
+  return { app, provider };
 }
 
-const provider = new oidc.Provider("http://localhost:6060", {
-  clients: oidClients,
-  scopes: ["openid", "pid:sd_jwt_dc", "pid:mso_mdoc"],
-  features: {
-    devInteractions: { enabled: false },
-    introspection: {
-      enabled: true,
-      allowedPolicy: introspectionAllowedPolicy,
-    },
-    jwtResponseModes: {
-      enabled: true,
-    },
-    pushedAuthorizationRequests: {
-      enabled: true
-    }
-  },
-});
-const acSource = new DemoAccountSource();
-
-interactions(app, provider, acSource);
-app.use("/", provider.callback());
-
-app.listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
-});
+if (require.main === module) {
+  const { app } = createApp();
+  const port = process.env.PORT || 6060;
+  app.listen(port, () => {
+    console.log(`Server listening on http://localhost:${port}`);
+  });
+}
