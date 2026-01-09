@@ -60,6 +60,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
       const result = {
         login: {
           accountId: account.sub,
+          remember: false
         },
       };
 

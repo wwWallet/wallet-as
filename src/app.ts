@@ -5,6 +5,7 @@ import interactions from "./routes/interactions";
 import { DemoAccountSource } from "./account/DemoAccountSource";
 import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
 import config from "./config";
+import { interactionPolicies } from "./policies/interactionPolicies";
 
 export function createApp() {
   const app = express();
@@ -57,6 +58,9 @@ export function createApp() {
   const provider = new oidc.Provider("http://localhost:6060", {
     clients: oidClients,
     scopes: ["openid", "pid:sd_jwt_dc", "pid:mso_mdoc"],
+    interactions: {
+      policy: interactionPolicies()
+    },
     features: {
       devInteractions: { enabled: false },
       introspection: {
