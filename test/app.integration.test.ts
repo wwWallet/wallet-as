@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/app";
 
@@ -22,4 +22,207 @@ describe("app integration", () => {
     expect(typeof res.body.token_endpoint).toBe("string");
     expect(typeof res.body.jwks_uri).toBe("string");
   });
+
+  describe("introspection flow", () => {
+    const originalEnv = process.env;
+    let agent: request.SuperAgentTest;
+    let accessToken: string;
+    let introspectionPath: string;
+
+    beforeAll(async () => {
+      process.env = {
+        ...originalEnv,
+        INTROSPECTION_CLIENT: "introspect-client",
+        INTROSPECTION_CLIENT_SECRET: "introspect-secret",
+      };
+
+      vi.resetModules();
+      const { createApp: createIntrospectionApp } = await import("../src/app");
+      const { app: introspectionApp } = createIntrospectionApp();
+      agent = request.agent(introspectionApp);
+
+      const tokenResponse = await issueAccessToken(agent);
+      accessToken = tokenResponse.accessToken;
+      introspectionPath = tokenResponse.introspectionPath;
+    });
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    it("allows the token's client to introspect", async () => {
+      const sameClientRes = await agent
+        .post(introspectionPath)
+        .auth("test", "test")
+        .type("form")
+        .send({ token: accessToken })
+        .expect(200);
+      expect(sameClientRes.body.active).toBe(true);
+    });
+
+    it("allows the configured introspection client to introspect", async () => {
+      const introspectionClientRes = await agent
+        .post(introspectionPath)
+        .auth("introspect-client", "introspect-secret")
+        .type("form")
+        .send({ token: accessToken })
+        .expect(200);
+      expect(introspectionClientRes.body.active).toBe(true);
+    });
+
+    it("rejects an unrelated client", async () => {
+      const unrelatedClientRes = await agent
+        .post(introspectionPath)
+        .auth("test2", "test2")
+        .type("form")
+        .send({ token: accessToken })
+        .expect(200);
+      expect(unrelatedClientRes.body.active).toBe(false);
+    });
+  });
 });
+
+function extractInteractionUid(location: string) {
+  const match = location.match(/\/(?:interaction)\/([^/]+)/);
+  if (!match) {
+    throw new Error(`Missing interaction uid in location: ${location}`);
+  }
+  return match[1];
+}
+
+function normalizeLocation(location: string) {
+  if (!location.startsWith("http://") && !location.startsWith("https://")) {
+    return location.startsWith("/") ? location : `/${location}`;
+  }
+  const url = new URL(location);
+  return `${url.pathname}${url.search}`;
+}
+
+async function followRedirectsToOk(
+  agent: request.SuperAgentTest,
+  location: string,
+  maxHops = 5
+) {
+  let nextLocation = normalizeLocation(location);
+  for (let hop = 0; hop < maxHops; hop += 1) {
+    const res = await agent.get(nextLocation);
+    if (res.status === 200) {
+      return { response: res, location: nextLocation };
+    }
+    if (!res.headers.location) {
+      throw new Error(`Expected redirect location, got ${res.status}`);
+    }
+    nextLocation = normalizeLocation(res.headers.location as string);
+  }
+  throw new Error(`Too many redirects while fetching ${location}`);
+}
+
+async function followRedirectsToAuthCode(
+  agent: request.SuperAgentTest,
+  location: string,
+  redirectUri: string,
+  maxHops = 5
+) {
+  let nextLocation = location;
+  for (let hop = 0; hop < maxHops; hop += 1) {
+    const directCode = tryExtractAuthCode(nextLocation, redirectUri);
+    if (directCode) {
+      return directCode;
+    }
+
+    const normalized = normalizeLocation(nextLocation);
+    const res = await agent.get(normalized);
+    if (!res.headers.location) {
+      throw new Error(`Expected redirect location, got ${res.status}`);
+    }
+    nextLocation = res.headers.location as string;
+  }
+  throw new Error(`Too many redirects while fetching ${location}`);
+}
+
+function tryExtractAuthCode(location: string, redirectUri: string) {
+  try {
+    const url = new URL(location, "http://localhost");
+    if (!url.href.startsWith(redirectUri)) {
+      return null;
+    }
+    return url.searchParams.get("code");
+  } catch {
+    return null;
+  }
+}
+
+async function issueAccessToken(agent: request.SuperAgentTest) {
+  const authRes = await agent
+    .get("/auth")
+    .query({
+      client_id: "test",
+      redirect_uri: "http://localhost:9876/callback",
+      response_type: "code",
+      scope: "openid",
+      state: "state-123",
+    })
+    .expect(303);
+
+  const authLocation = authRes.headers.location;
+  expect(authLocation).toBeTruthy();
+  const interactionUid = extractInteractionUid(authLocation as string);
+
+  await followRedirectsToOk(agent, authLocation as string);
+
+  const loginRes = await agent
+    .post(`/interaction/${interactionUid}/login`)
+    .type("form")
+    .send({ login: "test", password: "test" })
+    .expect(303);
+
+  const consentLocation = loginRes.headers.location;
+  expect(consentLocation).toBeTruthy();
+  const consentPage = await followRedirectsToOk(
+    agent,
+    consentLocation as string
+  );
+  const consentUid = extractInteractionUid(consentPage.location);
+
+  const consentRes = await agent
+    .post(`/interaction/${consentUid}/confirm`)
+    .type("form")
+    .send({})
+    .expect((res) => {
+      if (res.status !== 302 && res.status !== 303) {
+        throw new Error(`Unexpected status ${res.status}`);
+      }
+    });
+
+  const redirectLocation = consentRes.headers.location;
+  expect(redirectLocation).toBeTruthy();
+  const code = await followRedirectsToAuthCode(
+    agent,
+    redirectLocation as string,
+    "http://localhost:9876/callback"
+  );
+
+  const tokenRes = await agent
+    .post("/token")
+    .auth("test", "test")
+    .type("form")
+    .send({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: "http://localhost:9876/callback",
+    })
+    .expect(200);
+
+  const accessToken = tokenRes.body.access_token as string;
+  expect(accessToken).toBeTruthy();
+
+  const discoveryRes = await agent
+    .get("/.well-known/openid-configuration")
+    .expect(200);
+
+  const introspectionPath = new URL(
+    discoveryRes.body.introspection_endpoint as string
+  ).pathname;
+
+  return { accessToken, introspectionPath };
+}
