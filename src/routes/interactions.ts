@@ -2,6 +2,7 @@ import Express from "express";
 import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
 import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
+import { getCredentialDisplayByScope } from '../util/getCredentialDisplayByScope';
 
 export default (app: Express.Application, provider: Provider, AccountSource: IAccountSource) => {
   app.get('/interaction/:uid', async (req, res, next) => {
@@ -13,12 +14,21 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
         const client = await provider.Client.find(params.client_id as string);
         console.log(uid, prompt, params, session, client)
         let issuerMetadata: any = null;
+        let credentialConfigs: Array<{scope: string, display: any}> = [];
         if (prompt.name === 'consent') {
           const issuerUrl = process.env.ISSUER_URL;
           if (issuerUrl) {
             try {
               issuerMetadata = await fetchIssuerMetadata(issuerUrl);
               console.log('Issuer Metadata:', issuerMetadata);
+              if (issuerMetadata) {
+                credentialConfigs = (params.scope as string).split(' ').map((scope: string) => {
+                  return {
+                    scope,
+                    display: getCredentialDisplayByScope(issuerMetadata, scope)
+                  };
+                });
+              }
             } catch (err) {
               console.error('Could not fetch issuer metadata:', err);
             }
@@ -39,7 +49,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
               uid,
               details: prompt.details,
               params,
-              issuerMetadata
+              credentialConfigs
             });
           }
           default:
