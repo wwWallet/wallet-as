@@ -1,6 +1,7 @@
 import Express from "express";
 import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
+import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 
 export default (app: Express.Application, provider: Provider, AccountSource: IAccountSource) => {
   app.get('/interaction/:uid', async (req, res, next) => {
@@ -10,8 +11,19 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
         } = await provider.interactionDetails(req, res);
 
         const client = await provider.Client.find(params.client_id as string);
-      console.log('!!!',uid, prompt, params, session,client)
-
+        console.log(uid, prompt, params, session, client)
+        let issuerMetadata: any = null;
+        if (prompt.name === 'consent') {
+          const issuerUrl = process.env.ISSUER_URL;
+          if (issuerUrl) {
+            try {
+              issuerMetadata = await fetchIssuerMetadata(issuerUrl);
+              console.log('Issuer Metadata:', issuerMetadata);
+            } catch (err) {
+              console.error('Could not fetch issuer metadata:', err);
+            }
+          }
+        }
         switch (prompt.name) {
           case 'login': {
             return res.render('login', {
@@ -27,6 +39,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
               uid,
               details: prompt.details,
               params,
+              issuerMetadata
             });
           }
           default:
