@@ -16,10 +16,10 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
         let issuerMetadata: any = null;
         let credentialConfigs: Array<{scope: string, display: any}> = [];
         if (prompt.name === 'consent') {
-          const issuerUrl = process.env.ISSUER_URL;
-          if (issuerUrl) {
+          const metadataUrl = process.env.METADATA_URL;
+          if (metadataUrl) {
             try {
-              issuerMetadata = await fetchIssuerMetadata(issuerUrl);
+              issuerMetadata = await fetchIssuerMetadata(metadataUrl);
               console.log('Issuer Metadata:', issuerMetadata);
               if (issuerMetadata) {
                 credentialConfigs = (params.scope as string).split(' ').map((scope: string) => {
