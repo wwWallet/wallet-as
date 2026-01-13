@@ -3,6 +3,9 @@ import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
 import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 import { getCredentialDisplayByScope } from '../util/getCredentialDisplayByScope';
+import { createCredentialDataUri } from "../util/credentialImage/createCredentialDataUri";
+
+const getDataUri = createCredentialDataUri();
 
 export default (app: Express.Application, provider: Provider, AccountSource: IAccountSource) => {
   app.get('/interaction/:uid', async (req, res, next) => {
@@ -20,7 +23,6 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
           if (metadataUrl) {
             try {
               issuerMetadata = await fetchIssuerMetadata(metadataUrl);
-              console.log('Issuer Metadata:', issuerMetadata);
               if (issuerMetadata) {
                 credentialConfigs = (params.scope as string).split(' ').map((scope: string) => {
                   return {
@@ -34,6 +36,12 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
             }
           }
         }
+        
+        const dataUri = await getDataUri({
+          credentialIssuerMetadata: credentialConfigs[0],
+          preferredLangs: ["en-US"],
+        });
+
         switch (prompt.name) {
           case 'login': {
             return res.render('login', {
@@ -49,7 +57,8 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
               uid,
               details: prompt.details,
               params,
-              credentialConfigs
+              credentialConfigs,
+              dataUri
             });
           }
           default:
