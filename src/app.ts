@@ -56,7 +56,7 @@ export function createApp() {
 
   const provider = new oidc.Provider("http://localhost:6060", {
     clients: oidClients,
-    scopes: ["openid", "pid:sd_jwt_dc", "pid:mso_mdoc"],
+    scopes: config.scopes,
     features: {
       devInteractions: { enabled: false },
       introspection: {
