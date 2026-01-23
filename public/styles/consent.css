@@ -102,6 +102,7 @@
 }
 
 .consent__request {
+  text-align: center;
   margin: 0 0 14px;
   font-size: 15px;
   line-height: 1.6;
@@ -210,6 +211,24 @@
   color: var(--text-primary);
   font-weight: 500;
   word-break: break-all;
+}
+
+.consent__credential-preview {
+	margin: 12px 0 4px;
+	display: flex;
+	justify-content: center;
+}
+
+.consent__credential-img {
+	width: min(260px, 100%);
+	height: auto;
+	display: block;
+
+	border-radius: 12px;
+	border: 1px solid var(--border);
+	background: #ffffff;
+
+	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
 }
 
 @media (max-width: 520px) {

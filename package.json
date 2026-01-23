@@ -25,6 +25,7 @@
     "vitest": "^4.0.15"
   },
   "dependencies": {
+    "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "oidc-provider": "^9.6.0",

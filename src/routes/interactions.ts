@@ -1,6 +1,11 @@
 import Express from "express";
 import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
+import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
+import { getCredentialDisplayByScope } from '../util/getCredentialDisplayByScope';
+import { createCredentialDataUri } from "../util/credentialImage/createCredentialDataUri";
+
+const getDataUri = createCredentialDataUri();
 
 export default (app: Express.Application, provider: Provider, AccountSource: IAccountSource) => {
 	app.get('/as/interaction/:uid', async (req, res, next) => {
@@ -10,7 +15,32 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
         } = await provider.interactionDetails(req, res);
 
         const client = await provider.Client.find(params.client_id as string);
-      console.log('!!!',uid, prompt, params, session,client)
+        console.log(uid, prompt, params, session, client)
+        let issuerMetadata: any = null;
+        let credentialConfigs: Array<{scope: string, display: any}> = [];
+        if (prompt.name === 'consent') {
+          const metadataUrl = process.env.METADATA_URL;
+          if (metadataUrl) {
+            try {
+              issuerMetadata = await fetchIssuerMetadata(metadataUrl);
+              if (issuerMetadata) {
+                credentialConfigs = (params.scope as string).split(' ').map((scope: string) => {
+                  return {
+                    scope,
+                    display: getCredentialDisplayByScope(issuerMetadata, scope)
+                  };
+                });
+              }
+            } catch (err) {
+              console.error('Could not fetch issuer metadata:', err);
+            }
+          }
+        }
+        
+        const dataUri = await getDataUri({
+          credentialIssuerMetadata: credentialConfigs[0],
+          preferredLangs: ["en-US"],
+        });
 
         switch (prompt.name) {
           case 'login': {
@@ -27,6 +57,8 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
               uid,
               details: prompt.details,
               params,
+              credentialConfigs,
+              dataUri
             });
           }
           default:
@@ -60,6 +92,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
       const result = {
         login: {
           accountId: account.sub,
+          remember: false
         },
       };
 

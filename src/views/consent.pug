@@ -29,8 +29,13 @@ html(lang="en")
       main.consent
         .consent__card
           p.consent__request
+            | Authorize 
             strong #{clientName}
-            |  wants to access your account.
+            |  to request your credential
+
+          if dataUri
+            .consent__credential-preview
+              img.consent__credential-img(src=dataUri alt="Credential preview")
 
           if details && details.scopes
             ul.consent__permissions
