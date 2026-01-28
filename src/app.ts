@@ -9,19 +9,20 @@ import { interactionPolicies } from "./policies/interactionPolicies";
 
 export function createApp() {
   const app = express();
-
+  app.set('trust proxy', true);
   // Keep templates alongside source for both ts-node and compiled runs.
   const viewsPath = path.join(__dirname, "../src/views");
 
   // Serve static files
-  app.use(express.static(path.join(process.cwd(), "public")));
+  app.use("/as", express.static(path.join(process.cwd(), "public")));
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.set("views", viewsPath);
   app.set("view engine", "pug");
+  app.locals.baseUrl = config.serviceUrl;
 
-  app.get("/", (_req, res) => res.render("index"));
+  app.get("/as", (_req, res) => res.render("index"));
   const oidClients: oidc.ClientMetadata[] = [
     {
       client_id: "test",
@@ -40,7 +41,7 @@ export function createApp() {
     {
       client_id: "1233",
       token_endpoint_auth_method: "none",
-      redirect_uris: ["http://localhost:3000/"],
+      redirect_uris: [config.walletUrl],
       logo_uri:
         "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
     },
@@ -55,11 +56,15 @@ export function createApp() {
     });
   }
 
-  const provider = new oidc.Provider("http://localhost:6060", {
+  const provider = new oidc.Provider(config.serviceUrl, {
     clients: oidClients,
-    scopes: ["openid", "pid:sd_jwt_dc", "pid:mso_mdoc"],
+
+    scopes: config.scopes,
     interactions: {
-      policy: interactionPolicies()
+	  policy: interactionPolicies(),
+	  url(ctx, interaction) {
+        return `/as/interaction/${interaction.uid}`;
+      }
     },
     features: {
       devInteractions: { enabled: false },
@@ -75,10 +80,11 @@ export function createApp() {
       },
     },
   });
+  provider.proxy = true;
   const acSource = new DemoAccountSource();
 
   interactions(app, provider, acSource);
-  app.use("/", provider.callback());
+  app.use("/as", provider.callback());
 
   return { app, provider };
 }

@@ -2,10 +2,11 @@ doctype html
 html(lang="en")
   head
     meta(charset="UTF-8")
+    base(href=baseUrl)
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
     title Wallet AS · Consent
-    link(rel="stylesheet", href="/styles/base.css")
-    link(rel="stylesheet", href="/styles/consent.css")
+    link(rel="stylesheet", href="styles/base.css")
+    link(rel="stylesheet", href="styles/consent.css")
 
   body
     - const clientName = ( client.clientId || client.client_id || 'Client');
@@ -44,11 +45,11 @@ html(lang="en")
                   span.consent__permission-desc Access granted
 
         .consent__actions
-          form(method="post", action=`/interaction/${uid}/abort`)
+          form(method="post", action=`interaction/${uid}/abort`)
             input(type="hidden", name="uid", value=uid)
             button.consent__deny(type="submit") Cancel
 
-          form(method="post", action=`/interaction/${uid}/confirm`)
+          form(method="post", action=`interaction/${uid}/confirm`)
             input(type="hidden", name="uid", value=uid)
             button.consent__approve(type="submit") Authorize
 

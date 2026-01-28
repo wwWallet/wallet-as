@@ -8,7 +8,7 @@ import { createCredentialDataUri } from "../util/credentialImage/createCredentia
 const getDataUri = createCredentialDataUri();
 
 export default (app: Express.Application, provider: Provider, AccountSource: IAccountSource) => {
-  app.get('/interaction/:uid', async (req, res, next) => {
+	app.get('/as/interaction/:uid', async (req, res, next) => {
       try {
         const {
           uid, prompt, params, session,
@@ -69,7 +69,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
       }
     });
 
-  app.post('/interaction/:uid/login', async (req, res, next) => {
+  app.post('/as/interaction/:uid/login', async (req, res, next) => {
     try {
       const interaction = await provider.interactionDetails(req, res);
       if (interaction.prompt.name !== 'login') {
@@ -102,7 +102,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
     }
   });
 
-  app.post('/interaction/:uid/confirm', async (req, res, next) => {
+  app.post('/as/interaction/:uid/confirm', async (req, res, next) => {
       try {
         const interaction = await provider.interactionDetails(req, res);
         const {
@@ -162,7 +162,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
       }
     });
 
-    app.post('/interaction/:uid/abort', async (req, res, next) => {
+    app.post('/as/interaction/:uid/abort', async (req, res, next) => {
       try {
         const result = {
           error: 'access_denied',

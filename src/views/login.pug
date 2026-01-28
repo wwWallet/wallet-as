@@ -2,10 +2,11 @@ doctype html
 html(lang="en")
   head
     meta(charset="UTF-8")
+    base(href=baseUrl)
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
     title Wallet AS · Sign in
-    link(rel="stylesheet", href="/styles/base.css")
-    link(rel="stylesheet", href="/styles/login.css")
+    link(rel="stylesheet", href="styles/base.css")
+    link(rel="stylesheet", href="styles/login.css")
 
   body
     - const clientName = (client.clientId || client.client_id || 'Client');
@@ -33,7 +34,7 @@ html(lang="en")
         if error
           p.login__error #{error}
 
-        form.login__form(method="post", action=`/interaction/${uid}/login`)
+        form.login__form(method="post", action=`interaction/${uid}/login`)
           input(type="hidden", name="uid", value=uid)
 
           .login__field-group
