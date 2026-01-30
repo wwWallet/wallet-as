@@ -6,6 +6,7 @@ import { DemoAccountSource } from "./account/DemoAccountSource";
 import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
 import config from "./config";
 import { interactionPolicies } from "./policies/interactionPolicies";
+import { issueRefreshToken } from "./policies/issueRefreshToken";
 
 export function createApp() {
   const app = express();
@@ -79,6 +80,7 @@ export function createApp() {
         enabled: true,
       },
     },
+    issueRefreshToken: issueRefreshToken
   });
   provider.proxy = true;
   const acSource = new DemoAccountSource();
