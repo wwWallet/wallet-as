@@ -80,7 +80,11 @@ export function createApp() {
         enabled: true,
       },
     },
-    issueRefreshToken: issueRefreshToken
+    issueRefreshToken: issueRefreshToken,
+    ttl: {
+      AccessToken: 30,
+      RefreshToken: 2592000,
+    }
   });
   provider.proxy = true;
   const acSource = new DemoAccountSource();
