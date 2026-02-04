@@ -34,6 +34,8 @@ html(lang="en")
         if error
           p.login__error #{error}
 
+        if demoMode
+          span.login__demo Demo Mode is ON. Test user credentials have been prefilled.
         form.login__form(method="post", action=`interaction/${uid}/login`)
           input(type="hidden", name="uid", value=uid)
 
@@ -45,7 +47,7 @@ html(lang="en")
               id="login",
               autocomplete="username",
               required=true,
-              value=login,
+              value=demoMode ? demoUsername : login,
               placeholder="Enter your username or email"
             )
 
@@ -58,6 +60,7 @@ html(lang="en")
               autocomplete="current-password",
               required=true,
               placeholder="Enter your password"
+              value=demoMode ? demoPassword : ""
             )
 
           button.login__submit(type="submit") Sign in

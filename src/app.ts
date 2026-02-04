@@ -22,6 +22,9 @@ export function createApp() {
   app.set("views", viewsPath);
   app.set("view engine", "pug");
   app.locals.baseUrl = config.serviceUrl;
+  app.locals.demoMode = config.demoUsername || false;
+  app.locals.demoUsername = config.demoUsername;
+  app.locals.demoPassword = config.demoPassword;
 
   app.get("/as", (_req, res) => res.render("index"));
   const oidClients: oidc.ClientMetadata[] = [
