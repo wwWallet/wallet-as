@@ -147,6 +147,16 @@
   transform: translateY(1px);
 }
 
+.login__demo {
+  display: block;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+}
+
 @media (max-width: 520px) {
   .login {
     padding: 18px 16px 16px;
