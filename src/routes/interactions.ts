@@ -18,7 +18,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
         const client = await provider.Client.find(params.client_id as string);
         console.log(uid, prompt, params, session, client)
         let issuerMetadata: any = null;
-        let credentialConfigs: Array<{scope: string,vct:string | undefined, display: any}> = [];
+        let credentialConfigs: Array<{scope: string, vct: string | null, display: any}> = [];
         if (prompt.name === 'consent') {
           const metadataUrl = process.env.METADATA_URL;
           if (metadataUrl) {
