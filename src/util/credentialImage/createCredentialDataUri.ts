@@ -46,11 +46,10 @@ export function createCredentialDataUri() {
 			credentialIssuerMetadata?.display,
 			preferredLangs
 		);
-
-		const svgTemplateUri =
-			credentialDisplayLocalized?.rendering?.svg_templates?.[0]?.uri || null;
-		const simpleDisplayConfig =
-			credentialDisplayLocalized?.rendering?.simple || null;
+		// @ts-ignore
+		const svgTemplateUri = credentialDisplayLocalized?.rendering?.svg_templates?.[0]?.uri || null;
+		// @ts-ignore
+		const simpleDisplayConfig = credentialDisplayLocalized?.rendering?.simple || null;
 
 		// 1. SVG template rendering
 		if (svgTemplateUri) {
