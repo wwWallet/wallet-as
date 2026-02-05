@@ -3,9 +3,28 @@ import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
 import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 import { getCredentialDisplayByScope } from '../util/getCredentialDisplayByScope';
-import { createCredentialDataUri } from "../util/credentialImage/createCredentialDataUri";
+import { dataUriResolver } from "wallet-common/dist/resolvers";
+import { defaultHttpClient } from 'wallet-common/dist/defaultHttpClient';
+import { OpenID4VCICredentialRendering } from "wallet-common/dist/functions/openID4VCICredentialRendering";
 
-const getDataUri = createCredentialDataUri();
+const customRenderer = OpenID4VCICredentialRendering({httpClient: defaultHttpClient});
+
+// Generate preview image for consent screen
+async function getConsentDataUri(
+	issuerDisplayArray: any[] | undefined,
+	langs: string[] = ["en-US"]
+): Promise<string | null> {
+	if (!issuerDisplayArray?.length) return null;
+
+	const resolve = dataUriResolver({
+		httpClient: defaultHttpClient,
+		customRenderer: customRenderer,
+		issuerDisplayArray: issuerDisplayArray,
+		fallbackName: "Credential",
+	});
+
+	return resolve(undefined, langs);
+}
 
 export default (app: Express.Application, provider: Provider, AccountSource: IAccountSource) => {
 	app.get('/as/interaction/:uid', async (req, res, next) => {
@@ -36,11 +55,6 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
             }
           }
         }
-        
-        const dataUri = await getDataUri({
-          credentialIssuerMetadata: credentialConfigs[0],
-          preferredLangs: ["en-US"],
-        });
 
         switch (prompt.name) {
           case 'login': {
@@ -52,6 +66,8 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
             });
           }
           case 'consent': {
+            const dataUri = await getConsentDataUri(credentialConfigs[0]?.display);
+
             return res.render('consent', {
               client,
               uid,
