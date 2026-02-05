@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export default {
-  serviceUrl: process.env.SERVICE_URL || "http://localhost:6060/as/",
+  serviceUrl: process.env.SERVICE_URL || "http://localhost:6060/as",
   walletUrl: process.env.WALLET_URL || "http://localhost:3000",
   introspectionClient: process.env.INTROSPECTION_CLIENT || null,
   introspectionClientSecret: process.env.INTROSPECTION_CLIENT_SECRET || null,
