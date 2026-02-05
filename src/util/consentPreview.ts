@@ -35,5 +35,5 @@ export async function getConsentPreviewDataUri(opts: {
     });
 
     const dataUri = await resolve(undefined, langs);
-    return { dataUri, credentialMetadata };
+    return { dataUri };
 }
