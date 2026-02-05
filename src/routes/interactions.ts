@@ -3,28 +3,10 @@ import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
 import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 import { getCredentialDisplayByScope } from '../util/getCredentialDisplayByScope';
-import { dataUriResolver } from "wallet-common/dist/resolvers";
-import { defaultHttpClient } from 'wallet-common/dist/defaultHttpClient';
-import { OpenID4VCICredentialRendering } from "wallet-common/dist/functions/openID4VCICredentialRendering";
+import { makeVctProviderFromEnv } from "../util/vctResolution";
+import { getConsentPreviewDataUri } from "../util/consentPreview";
 
-const customRenderer = OpenID4VCICredentialRendering({httpClient: defaultHttpClient});
-
-// Generate preview image for consent screen
-async function getConsentDataUri(
-	issuerDisplayArray: any[] | undefined,
-	langs: string[] = ["en-US"]
-): Promise<string | null> {
-	if (!issuerDisplayArray?.length) return null;
-
-	const resolve = dataUriResolver({
-		httpClient: defaultHttpClient,
-		customRenderer: customRenderer,
-		issuerDisplayArray: issuerDisplayArray,
-		fallbackName: "Credential",
-	});
-
-	return resolve(undefined, langs);
-}
+const vctEngine = makeVctProviderFromEnv();
 
 export default (app: Express.Application, provider: Provider, AccountSource: IAccountSource) => {
 	app.get('/as/interaction/:uid', async (req, res, next) => {
@@ -36,17 +18,23 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
         const client = await provider.Client.find(params.client_id as string);
         console.log(uid, prompt, params, session, client)
         let issuerMetadata: any = null;
-        let credentialConfigs: Array<{scope: string, display: any}> = [];
+        let credentialConfigs: Array<{scope: string,vct:string | undefined, display: any}> = [];
         if (prompt.name === 'consent') {
           const metadataUrl = process.env.METADATA_URL;
           if (metadataUrl) {
             try {
               issuerMetadata = await fetchIssuerMetadata(metadataUrl);
               if (issuerMetadata) {
-                credentialConfigs = (params.scope as string).split(' ').map((scope: string) => {
+                credentialConfigs = String(params.scope ?? "")
+                .split(" ")
+                .filter(Boolean)
+                .map((scope: string) => {
+                  const configs = issuerMetadata?.credential_configurations_supported ?? {};
+                  const cfg = Object.values(configs).find((c: any) => c?.scope === scope) as any;
                   return {
                     scope,
-                    display: getCredentialDisplayByScope(issuerMetadata, scope)
+                    vct: cfg?.vct ?? null,
+                    display: cfg?.display ?? null,
                   };
                 });
               }
@@ -66,7 +54,14 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
             });
           }
           case 'consent': {
-            const dataUri = await getConsentDataUri(credentialConfigs[0]?.display);
+
+            const cfg0 = credentialConfigs[0];
+            const { dataUri } = await getConsentPreviewDataUri({
+              vctEngine,
+              vct: cfg0?.vct,
+              issuerDisplayArray: cfg0?.display,
+              langs: ["en-US"],
+            });
 
             return res.render('consent', {
               client,
