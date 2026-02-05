@@ -2,7 +2,6 @@ import Express from "express";
 import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
 import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
-import { getCredentialDisplayByScope } from '../util/getCredentialDisplayByScope';
 import { makeVctProviderFromEnv } from "../util/vctResolution";
 import { getConsentPreviewDataUri } from "../util/consentPreview";
 
