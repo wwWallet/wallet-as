@@ -1,12 +1,8 @@
-import { defaultHttpClient } from "wallet-common/dist/defaultHttpClient";
-import { OpenID4VCICredentialRendering } from "wallet-common/dist/functions/openID4VCICredentialRendering";
-import { dataUriResolver } from "wallet-common/dist/resolvers";
-import { getSdJwtVcMetadata } from "wallet-common/dist/utils";
-import { CredentialRenderingService } from "wallet-common";
-import type { TypeMetadata as TypeMetadataSchema } from "wallet-common/dist/schemas/SdJwtVcTypeMetadataSchema";
+import { CredentialRenderingService, defaultHttpClient, CustomCredentialSvg, dataUriResolver, getSdJwtVcMetadata } from "wallet-common";
+import type { TypeMetadata as TypeMetadataSchema } from "wallet-common";
 
 const sdJwtVcRenderer = CredentialRenderingService();
-const customRenderer = OpenID4VCICredentialRendering({ httpClient: defaultHttpClient });
+const customRenderer = CustomCredentialSvg({ httpClient: defaultHttpClient });
 
 export async function getConsentPreviewDataUri(opts: {
     vctEngine: any;
