@@ -1,6 +1,6 @@
 import { createVctDocumentResolutionEngine, VctDocumentProvider, VctResolutionErrors, ok, err } from "wallet-common";
 
-export function makeVctProviderFromEnv(): ReturnType<typeof createVctDocumentResolutionEngine> {
+export function createVctProviderFromEnv(): ReturnType<typeof createVctDocumentResolutionEngine> {
     const provider: VctDocumentProvider = {
         getVctMetadataDocument: async (vct: string) => {
             try {

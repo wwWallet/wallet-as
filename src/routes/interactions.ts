@@ -2,10 +2,10 @@ import Express from "express";
 import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
 import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
-import { makeVctProviderFromEnv } from "../util/vctResolution";
+import { createVctProviderFromEnv } from "../util/vctResolution";
 import { getConsentPreviewDataUri } from "../util/consentPreview";
 
-const vctEngine = makeVctProviderFromEnv();
+const vctEngine = createVctProviderFromEnv();
 
 export default (app: Express.Application, provider: Provider, AccountSource: IAccountSource) => {
 	app.get('/as/interaction/:uid', async (req, res, next) => {
