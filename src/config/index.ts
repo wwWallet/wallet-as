@@ -8,8 +8,8 @@ export default {
   introspectionClientSecret: process.env.INTROSPECTION_CLIENT_SECRET || null,
   scopes: process.env.SCOPES ? process.env.SCOPES.split(',') : ["openid"],
   ttl: {
-    accessToken: process.env.ACCESS_TOKEN_TTL || 30,
-    refreshToken: process.env.REFRESH_TOKEN_TTL || 2592000
+    accessToken: Number(process.env.ACCESS_TOKEN_TTL) || 30,
+    refreshToken: Number(process.env.REFRESH_TOKEN_TTL) || 2592000
   },
   demoUsername: process.env.DEMO_USERNAME || null,
   demoPassword: process.env.DEMO_PASSWORD || null
