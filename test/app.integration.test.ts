@@ -6,14 +6,14 @@ describe("app integration", () => {
   const { app } = createApp();
 
   it("serves the home page", async () => {
-    const res = await request(app).get("/");
+    const res = await request(app).get("/as/");
 
     expect(res.status).toBe(200);
     expect(res.text).toContain("Wallet Authorization Server");
   });
 
   it("serves OIDC discovery metadata", async () => {
-    const res = await request(app).get("/.well-known/openid-configuration");
+    const res = await request(app).get("/as/.well-known/openid-configuration");
 
     expect(res.status).toBe(200);
     expect(typeof res.body.issuer).toBe("string");
@@ -80,10 +80,33 @@ describe("app integration", () => {
       expect(unrelatedClientRes.body.active).toBe(false);
     });
   });
+
+  describe("token ttl", () => {
+    const originalEnv = process.env;
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    it("uses ACCESS_TOKEN_TTL for token response expires_in", async () => {
+      process.env = {
+        ...originalEnv,
+        ACCESS_TOKEN_TTL: "120",
+      };
+
+      vi.resetModules();
+      const { createApp: createTtlApp } = await import("../src/app");
+      const { app: ttlApp } = createTtlApp();
+      const agent = request.agent(ttlApp);
+
+      const tokenResponse = await issueAccessToken(agent);
+      expect(tokenResponse.expiresIn).toBe(120);
+    });
+  });
 });
 
 function extractInteractionUid(location: string) {
-  const match = location.match(/\/(?:interaction)\/([^/]+)/);
+  const match = location.match(/\/(?:as\/)?interaction\/([^/]+)/);
   if (!match) {
     throw new Error(`Missing interaction uid in location: ${location}`);
   }
@@ -154,7 +177,7 @@ function tryExtractAuthCode(location: string, redirectUri: string) {
 
 async function issueAccessToken(agent: request.SuperAgentTest) {
   const authRes = await agent
-    .get("/auth")
+    .get("/as/auth")
     .query({
       client_id: "test",
       redirect_uri: "http://localhost:9876/callback",
@@ -171,7 +194,7 @@ async function issueAccessToken(agent: request.SuperAgentTest) {
   await followRedirectsToOk(agent, authLocation as string);
 
   const loginRes = await agent
-    .post(`/interaction/${interactionUid}/login`)
+    .post(`/as/interaction/${interactionUid}/login`)
     .type("form")
     .send({ login: "test", password: "test" })
     .expect(303);
@@ -185,7 +208,7 @@ async function issueAccessToken(agent: request.SuperAgentTest) {
   const consentUid = extractInteractionUid(consentPage.location);
 
   const consentRes = await agent
-    .post(`/interaction/${consentUid}/confirm`)
+    .post(`/as/interaction/${consentUid}/confirm`)
     .type("form")
     .send({})
     .expect((res) => {
@@ -203,7 +226,7 @@ async function issueAccessToken(agent: request.SuperAgentTest) {
   );
 
   const tokenRes = await agent
-    .post("/token")
+    .post("/as/token")
     .auth("test", "test")
     .type("form")
     .send({
@@ -215,14 +238,15 @@ async function issueAccessToken(agent: request.SuperAgentTest) {
 
   const accessToken = tokenRes.body.access_token as string;
   expect(accessToken).toBeTruthy();
+  const expiresIn = tokenRes.body.expires_in as number;
 
   const discoveryRes = await agent
-    .get("/.well-known/openid-configuration")
+    .get("/as/.well-known/openid-configuration")
     .expect(200);
 
   const introspectionPath = new URL(
     discoveryRes.body.introspection_endpoint as string
   ).pathname;
 
-  return { accessToken, introspectionPath };
+  return { accessToken, introspectionPath, expiresIn };
 }
