@@ -85,8 +85,8 @@ export function createApp() {
     },
     issueRefreshToken: issueRefreshToken,
     ttl: {
-      AccessToken: 30,
-      RefreshToken: 2592000,
+      AccessToken: config.ttl.accessToken,
+      RefreshToken: config.ttl.refreshToken,
     }
   });
   provider.proxy = true;
