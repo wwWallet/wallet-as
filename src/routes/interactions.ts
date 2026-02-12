@@ -33,7 +33,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
                   return {
                     scope,
                     vct: cfg?.vct ?? null,
-                    display: cfg?.display ?? null,
+                    display: cfg?.credential_metadata.display ?? null,
                   };
                 });
               }
