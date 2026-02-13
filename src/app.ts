@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import * as oidc from "oidc-provider";
 import interactions from "./routes/interactions";
+import pidAuth from "./routes/pidAuth";
 import { DemoAccountSource } from "./account/DemoAccountSource";
 import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
 import config from "./config";
@@ -65,10 +66,10 @@ export function createApp() {
 
     scopes: config.scopes,
     interactions: {
-	  policy: interactionPolicies(),
-	  url(ctx, interaction) {
-        return `/as/interaction/${interaction.uid}`;
-      }
+      policy: interactionPolicies(),
+      url(ctx, interaction) {
+          return `/as/interaction/${interaction.uid}`;
+        }
     },
     features: {
       devInteractions: { enabled: false },
@@ -93,6 +94,7 @@ export function createApp() {
   const acSource = new DemoAccountSource();
 
   interactions(app, provider, acSource);
+  pidAuth(app, provider);
   app.use("/as", provider.callback());
 
   return { app, provider };

@@ -64,3 +64,7 @@ html(lang="en")
             )
 
           button.login__submit(type="submit") Sign in
+
+        form.login__form(method="post", action=`interaction/${uid}/pid`)
+          input(type="hidden", name="uid", value=uid)
+          button.login__submit(type="submit") Sign in with PID
