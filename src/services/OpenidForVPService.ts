@@ -7,8 +7,8 @@ import { decodeBase64Url } from "../util/decodeBase64Url";
 import fs from 'fs';
 import path from "path";
 
-const privateKeyPem = fs.readFileSync(path.join(__dirname, "../../../keys/pem.key"), 'utf-8').toString();
-const leafCert = fs.readFileSync(path.join(__dirname, "../../../keys/pem.crt"), 'utf-8').toString();
+const privateKeyPem = fs.readFileSync(path.join(__dirname, "../../keys/pem.key"), 'utf-8').toString();
+const leafCert = fs.readFileSync(path.join(__dirname, "../../keys/pem.crt"), 'utf-8').toString();
 
 const x5c = [
 	pemToBase64(leafCert),
