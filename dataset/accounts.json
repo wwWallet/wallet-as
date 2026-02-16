@@ -1,0 +1,54 @@
+{
+	"accounts": [
+		{
+			"id": "test",
+			"age_in_years": 35,
+			"age_birth_year": 1990,
+			"family_name": "Doe",
+			"given_name": "John",
+			"birth_family_name": "Doe",
+			"birth_given_name": "John",
+			"age_equal_or_over": {
+				"14": true,
+				"16": true,
+				"18": true,
+				"21": true,
+				"65": false
+			},
+			"sex": 1,
+			"birthdate": "1990-10-15",
+			"nationalities": [
+				"US",
+				"GR"
+			],
+			"document_number": "12313213",
+			"email": "john@sample.com",
+			"phone_number": "+308388338382"
+		},
+		{
+			"id": "test2",
+			"age_in_years": 35,
+			"age_birth_year": 1990,
+			"family_name": "Jones",
+			"given_name": "Emily",
+			"birth_family_name": "Jones",
+			"birth_given_name": "Emily",
+			"age_equal_or_over": {
+				"14": true,
+				"16": true,
+				"18": true,
+				"21": true,
+				"65": false
+			},
+			"sex": 2,
+			"birthdate": "1990-10-15",
+			"nationalities": [
+				"US",
+				"GR"
+			],
+			"document_number": "12313213",
+			"email": "emily@sample.com",
+			"phone_number": "+308388338381"
+		}
+	]
+}

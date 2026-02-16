@@ -4,12 +4,12 @@ import { defaultHttpClient } from "wallet-common";
 import { webcrypto } from "node:crypto";
 import { pemToBase64 } from "../util/pemToBase64";
 import { decodeBase64Url } from "../util/decodeBase64Url";
+import config from "../config";
 import fs from 'fs';
 import path from "path";
 
 const privateKeyPem = fs.readFileSync(path.join(__dirname, "../../keys/pem.key"), 'utf-8').toString();
 const leafCert = fs.readFileSync(path.join(__dirname, "../../keys/pem.crt"), 'utf-8').toString();
-
 const x5c = [
 	pemToBase64(leafCert),
 ];
@@ -19,14 +19,13 @@ export type OpenidForPresentationsConfiguration = {
   redirectUri: string;
 };
 
-export class OpenidForVPService {
+export class OpenID4VPService {
   private static rpStateKV: MemoryStore<string, RPState | string> = new MemoryStore();
   public openid4vpClient: OpenID4VPClientAPI;
 
   private privateKeyPem: string = privateKeyPem;
   private x5c: string[] = x5c;
   private responseMode: OpenID4VPResponseMode;
-
   constructor(
     private configuration: OpenidForPresentationsConfiguration,
     opts?: {
@@ -40,9 +39,8 @@ export class OpenidForVPService {
     this.privateKeyPem = opts?.privateKeyPem ?? privateKeyPem;
     this.x5c = opts?.x5c ?? x5c;
     this.responseMode = opts?.responseMode ?? OpenID4VPResponseMode.DIRECT_POST_JWT;
-
     this.openid4vpClient = new OpenID4VPClientAPI(
-      OpenidForVPService.rpStateKV,
+      OpenID4VPService.rpStateKV,
       {
         redirectUri: this.configuration.redirectUri,
         credentialEngineOptions: {
@@ -50,8 +48,8 @@ export class OpenidForVPService {
           clockTolerance: 60,
           subtle: webcrypto.subtle as SubtleCrypto,
           lang: "en-US",
-          trustedCertificates: opts?.trustedCertificates ?? [],
-          trustedCredentialIssuerIdentifiers: opts?.trustedCredentialIssuerIdentifiers,
+          trustedCertificates: [...config.trustedRootCertificates] as string[],
+          trustedCredentialIssuerIdentifiers: config.trustedIssuers as string[] | undefined,
         },
       },
       defaultHttpClient

@@ -4,6 +4,7 @@ import * as oidc from "oidc-provider";
 import interactions from "./routes/interactions";
 import pidAuth from "./routes/pidAuth";
 import { DemoAccountSource } from "./account/DemoAccountSource";
+import { FileAccountSource } from "./account/FileAccountSource";
 import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
 import config from "./config";
 import { interactionPolicies } from "./policies/interactionPolicies";
@@ -91,10 +92,11 @@ export function createApp() {
     }
   });
   provider.proxy = true;
-  const acSource = new DemoAccountSource();
+  const demoAccountSource = new DemoAccountSource();
+  const fileAccountSource = new FileAccountSource();
 
-  interactions(app, provider, acSource);
-  pidAuth(app, provider);
+  interactions(app, provider, demoAccountSource);
+  pidAuth(app, provider, fileAccountSource);
   app.use("/as", provider.callback());
 
   return { app, provider };
