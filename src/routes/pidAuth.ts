@@ -2,7 +2,7 @@ import Express from "express";
 import Provider from "oidc-provider";
 import config from "../config";
 import { OpenID4VPService } from "../services/OpenID4VPService";
-import { generateRandomIdentifier } from "../util/generateRandomIdentifier";
+import { generateRandomIdentifier } from "wallet-common";
 import IAccountSource from "../interfaces/IAccountSource";
 
 const pidPresentationRequest = {
