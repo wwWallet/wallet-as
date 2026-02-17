@@ -92,11 +92,12 @@ export function createApp() {
     }
   });
   provider.proxy = true;
-  const demoAccountSource = new DemoAccountSource();
-  const fileAccountSource = new FileAccountSource();
+  const accountSource = config.demoUsername
+    ? new DemoAccountSource()
+    : new FileAccountSource();
 
-  interactions(app, provider, demoAccountSource);
-  pidAuth(app, provider, fileAccountSource);
+  interactions(app, provider, accountSource);
+  pidAuth(app, provider, accountSource);
   app.use("/as", provider.callback());
 
   return { app, provider };

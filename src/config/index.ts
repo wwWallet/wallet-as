@@ -4,13 +4,19 @@ import path from "node:path";
 dotenv.config();
 
 const certsDir = path.resolve(process.cwd(), "./certs");
-const trustedRootCertificates = fs.existsSync(certsDir)
-  ? fs
+let trustedRootCertificates: string[] = [];
+try {
+  if (fs.existsSync(certsDir)) {
+    trustedRootCertificates = fs
       .readdirSync(certsDir)
       .filter((file) => file.toLowerCase().endsWith(".pem"))
       .map((file) => fs.readFileSync(path.join(certsDir, file), "utf-8").toString())
-      .filter((pem) => pem.trim().length > 0)
-  : [];
+      .filter((pem) => pem.trim().length > 0);
+  }
+} catch (err) {
+  console.warn("Failed to load trusted root certificates:", err);
+  trustedRootCertificates = [];
+}
 
 export default {
   serviceUrl: process.env.SERVICE_URL || "http://localhost:6060/as",
