@@ -1,0 +1,20 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Completing sign-in…
+  body
+    form#f(method="post")
+      input(type="hidden", name="response_code", id="response_code")
+    script.
+      (function () {
+        var hash = window.location.hash || "";
+        var code = (hash.match(/response_code=([^&]+)/) || [])[1];
+        if (code) {
+          document.getElementById("response_code").value = decodeURIComponent(code);
+          document.getElementById("f").submit();
+          return;
+        }
+        document.body.textContent = "Missing response_code";
+      })();

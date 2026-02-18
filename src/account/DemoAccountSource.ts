@@ -20,4 +20,10 @@ export class DemoAccountSource implements IAccountSource {
       this.accounts.find(ac => ac.sub === login)
     )
   }
+
+  public async matchClaims(_claims: Record<string, string>) {
+    const demoId = config.demoUsername;
+    const existing = this.accounts.find(ac => ac.sub === demoId);
+    return Promise.resolve(existing);
+  }
 }

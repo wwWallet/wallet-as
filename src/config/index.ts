@@ -1,5 +1,22 @@
 import dotenv from 'dotenv';
+import fs from "node:fs";
+import path from "node:path";
 dotenv.config();
+
+const certsDir = path.resolve(process.cwd(), "./certs");
+let trustedRootCertificates: string[] = [];
+try {
+  if (fs.existsSync(certsDir)) {
+    trustedRootCertificates = fs
+      .readdirSync(certsDir)
+      .filter((file) => file.toLowerCase().endsWith(".pem"))
+      .map((file) => fs.readFileSync(path.join(certsDir, file), "utf-8").toString())
+      .filter((pem) => pem.trim().length > 0);
+  }
+} catch (err) {
+  console.warn("Failed to load trusted root certificates:", err);
+  trustedRootCertificates = [];
+}
 
 export default {
   serviceUrl: process.env.SERVICE_URL || "http://localhost:6060/as",
@@ -12,5 +29,9 @@ export default {
     refreshToken: Number(process.env.REFRESH_TOKEN_TTL) || 2592000
   },
   demoUsername: process.env.DEMO_USERNAME || null,
-  demoPassword: process.env.DEMO_PASSWORD || null
+  demoPassword: process.env.DEMO_PASSWORD || null,
+  trustedRootCertificates: trustedRootCertificates,
+  trustedIssuers: process.env.TRUSTED_ISSUERS
+		? process.env.TRUSTED_ISSUERS.split(',')
+		: ["http://localhost:8003"],
 }
