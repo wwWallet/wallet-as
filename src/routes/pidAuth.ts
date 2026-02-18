@@ -76,7 +76,13 @@ export default (app: Express.Application, provider: Provider, accountSource: IAc
     try {
       const responseCode = req.body.response_code as string | undefined;
       if (!responseCode) {
-        return res.status(400).send({ error: "Missing response_code" });
+        await provider.interactionFinished(
+          req,
+          res,
+          { error: "invalid_request", error_description: "Missing response_code" },
+          { mergeWithLastSubmission: false }
+        );
+        return;
       }
 
       let sessionId: string | undefined;
@@ -85,7 +91,13 @@ export default (app: Express.Application, provider: Provider, accountSource: IAc
         sessionId = rpState.session_id;
       }
       if (!sessionId) {
-        return res.status(400).send({ error: "Invalid response_code" });
+        await provider.interactionFinished(
+          req,
+          res,
+          { error: "invalid_request", error_description: "Invalid response_code" },
+          { mergeWithLastSubmission: false }
+        );
+        return;
       }
 
       const presentationResult = await openID4VPService.openid4vpClient.getPresentationBySessionId(
@@ -97,18 +109,36 @@ export default (app: Express.Application, provider: Provider, accountSource: IAc
         presentationResult.rpState.vp_token == null ||
         presentationResult.rpState.claims == null
       ) {
-        return res.status(400).send({
-          error: presentationResult.status === false ? presentationResult.error.message : "Invalid presentation",
-        });
+        const errorMsg = !presentationResult.status
+          ? presentationResult.error.message
+          : "Missing vp_token or claims in presentation result";
+        const result = {
+          error: "access_denied",
+          error_description: "Failed to present required claims",
+        };
+        await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
+        return;
       }
 
       const claimMap = extractClaims(presentationResult.rpState.claims);
       if (!accountSource.matchClaims) {
-        return res.status(500).send({ error: "Account source does not support claim matching" });
+        await provider.interactionFinished(
+          req,
+          res,
+          { error: "server_error", error_description: "Account source does not support claim matching" },
+          { mergeWithLastSubmission: false }
+        );
+        return;
       }
       const account = await accountSource.matchClaims(claimMap);
       if (!account) {
-        return res.status(401).send({ error: "No matching account" });
+        await provider.interactionFinished(
+          req,
+          res,
+          { error: "access_denied", error_description: "No matching account" },
+          { mergeWithLastSubmission: false }
+        );
+        return;
       }
       const accountId = account.sub;
       const result = {
@@ -117,7 +147,11 @@ export default (app: Express.Application, provider: Provider, accountSource: IAc
 
       await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
     } catch (err) {
-      next(err);
+      const result = {
+        error: "access_denied",
+        error_description: err instanceof Error ? err.message : "Authentication failed: Invalid presentation",
+      };
+      await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
     }
   });
 
