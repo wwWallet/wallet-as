@@ -4,6 +4,7 @@ import IAccountSource from "../interfaces/IAccountSource";
 import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 import { createVctProviderFromEnv } from "../util/vctResolution";
 import { getConsentPreviewDataUri } from "../util/consentPreview";
+import { isPidAuthAllowed } from "../policies/allowPIDAuthentication";
 
 const vctEngine = createVctProviderFromEnv();
 
@@ -50,6 +51,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
               uid,
               details: prompt.details,
               params,
+              allowPidAuth: isPidAuthAllowed(params.scope as string),
             });
           }
           case 'consent': {
