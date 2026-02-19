@@ -65,12 +65,13 @@ html(lang="en")
 
           button.login__submit(type="submit") Sign in
 
-        .login__divider
-          span.login__divider-text or
+        if allowPidAuth
+          .login__divider
+            span.login__divider-text or
 
-        form.login__form(method="post", action=`interaction/${uid}/pid`)
-          input(type="hidden", name="uid", value=uid)
-          
-          button.login__submit.login__submit--secondary(type="submit") 
-            span.login__btn-icon(aria-hidden="true")
-            | Sign in with PID
+          form.login__form(method="post", action=`interaction/${uid}/pid`)
+            input(type="hidden", name="uid", value=uid)
+
+            button.login__submit.login__submit--secondary(type="submit")
+              span.login__btn-icon(aria-hidden="true")
+              | Sign in with PID

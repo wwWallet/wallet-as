@@ -4,6 +4,7 @@ import config from "../config";
 import { OpenID4VPService } from "../services/OpenID4VPService";
 import { generateRandomIdentifier } from "wallet-common";
 import IAccountSource from "../interfaces/IAccountSource";
+import { isPidAuthAllowed } from "../util/pidAuthEligibility";
 
 const pidPresentationRequest = {
   id: "PID",
@@ -50,6 +51,15 @@ export default (app: Express.Application, provider: Provider, accountSource: IAc
       const interaction = await provider.interactionDetails(req, res);
       if (interaction.prompt.name !== "login") {
         return res.sendStatus(404);
+      }
+      if (!isPidAuthAllowed(interaction.params.scope as string)) {
+        await provider.interactionFinished(
+          req,
+          res,
+          { error: "access_denied", error_description: "PID authentication not allowed for requested scope" },
+          { mergeWithLastSubmission: false }
+        );
+        return;
       }
 
       const sessionId = generateRandomIdentifier(12);
