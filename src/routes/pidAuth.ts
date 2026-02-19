@@ -4,7 +4,7 @@ import config from "../config";
 import { OpenID4VPService } from "../services/OpenID4VPService";
 import { generateRandomIdentifier } from "wallet-common";
 import IAccountSource from "../interfaces/IAccountSource";
-import { isPidAuthAllowed } from "../policies/allowPIDAuthentication";
+import { isPidAuthAllowed } from "../util/pidAuthEligibility";
 
 const pidPresentationRequest = {
   id: "PID",

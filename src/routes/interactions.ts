@@ -4,7 +4,7 @@ import IAccountSource from "../interfaces/IAccountSource";
 import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 import { createVctProviderFromEnv } from "../util/vctResolution";
 import { getConsentPreviewDataUri } from "../util/consentPreview";
-import { isPidAuthAllowed } from "../policies/allowPIDAuthentication";
+import { isPidAuthAllowed } from "../util/pidAuthEligibility";
 
 const vctEngine = createVctProviderFromEnv();
 
