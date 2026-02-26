@@ -100,11 +100,12 @@ export function createApp() {
     ? new DemoAccountSource()
     : new FileAccountSource();
 
+  // Always register core interaction routes
+  // authBroker augments login flow when enabled.
+  interactions(app, provider, accountSource);
+  pidAuth(app, provider, accountSource);
   if (config.authBrokerEnabled) {
     authBroker(app, provider, accountSource);
-  } else {
-    interactions(app, provider, accountSource);
-    pidAuth(app, provider, accountSource);
   }
   app.use("/as", provider.callback());
 

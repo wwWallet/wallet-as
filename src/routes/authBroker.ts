@@ -152,6 +152,17 @@ export default (app: Express.Application, provider: Provider, _accountSource: IA
         return;
       }
 
+      const authorizationCode = req.query.code as string | undefined;
+      if (!authorizationCode) {
+        await provider.interactionFinished(
+          req,
+          res,
+          { error: "invalid_request", error_description: "Missing authorization code in broker callback" },
+          { mergeWithLastSubmission: false }
+        );
+        return;
+      }
+
       // TODO: check if there is a better way to do this without cleaning up every time
       // before access
       await cleanupExpiredRequests();
@@ -167,9 +178,14 @@ export default (app: Express.Application, provider: Provider, _accountSource: IA
       }
 
       const brokerConfiguration = await getBrokerConfiguration();
+      // Incoming url has code/state from internal redirect
+      const incoming = new URL(req.originalUrl, `${req.protocol}://${req.get("host")}`);
+      const grantUrl = new URL(config.authBrokerRedirectUri);
+      // Pass the full query to grant function
+      grantUrl.search = incoming.search;
       const tokenSet = await openidClient.authorizationCodeGrant(
         brokerConfiguration,
-        new URL(config.authBrokerRedirectUri),
+        grantUrl,
         {
           expectedState: state,
         }
