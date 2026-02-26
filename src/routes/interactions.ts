@@ -5,6 +5,7 @@ import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 import { createVctProviderFromEnv } from "../util/vctResolution";
 import { getConsentPreviewDataUri } from "../util/consentPreview";
 import { isPidAuthAllowed } from "../util/pidAuthEligibility";
+import config from "../config";
 
 const vctEngine = createVctProviderFromEnv();
 
@@ -52,6 +53,7 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
               details: prompt.details,
               params,
               allowPidAuth: isPidAuthAllowed(params.scope as string),
+              allowAuthBroker: config.authBrokerEnabled,
             });
           }
           case 'consent': {
@@ -96,6 +98,8 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
           uid: interaction.uid,
           details: interaction.prompt.details,
           params: interaction.params,
+          allowPidAuth: isPidAuthAllowed(interaction.params.scope as string),
+          allowAuthBroker: config.authBrokerEnabled,
           error: 'Invalid credentials',
           login: req.body.login,
         });

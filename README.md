@@ -33,3 +33,8 @@ Environment variables and how they are used:
 | `REFRESH_TOKEN_TTL` | Refresh token TTL (seconds). | Default: `2592000` |
 | `DEMO_USERNAME` | Demo username for the login screen and demo account. | Enables demo mode; account is created with this username. |
 | `DEMO_PASSWORD` | Demo password shown in the login form. | Only used to prefill the login form; authentication does not check the password. |
+| `AUTH_BROKER_PROVIDER_URL` | External OIDC provider URL for auth broker login. | Enable with `AUTH_BROKER_CLIENT_ID`. |
+| `AUTH_BROKER_CLIENT_ID` | OIDC client ID for external auth broker. | Required with `AUTH_BROKER_PROVIDER_URL`. |
+| `AUTH_BROKER_CLIENT_SECRET` | OIDC client secret for external auth broker. | Optional for public clients. |
+| `AUTH_BROKER_SCOPE` | Space-separated scopes sent to external IdP authorize endpoint. | Default: `openid profile email`. |
+| `AUTH_BROKER_REDIRECT_URI` | Redirect URI handled by wallet-as broker callback route. | Default: `http://localhost:6060/as/interaction/authBroker/callback`. |

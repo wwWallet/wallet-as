@@ -3,6 +3,7 @@ import path from "path";
 import * as oidc from "oidc-provider";
 import interactions from "./routes/interactions";
 import pidAuth from "./routes/pidAuth";
+import authBroker from "./routes/authBroker";
 import { DemoAccountSource } from "./account/DemoAccountSource";
 import { FileAccountSource } from "./account/FileAccountSource";
 import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
@@ -69,8 +70,11 @@ export function createApp() {
     interactions: {
       policy: interactionPolicies(),
       url(ctx, interaction) {
-          return `/as/interaction/${interaction.uid}`;
+        if (config.authBrokerEnabled && interaction.prompt.name === "login") {
+          return `/as/interaction/${interaction.uid}/authBroker`;
         }
+        return `/as/interaction/${interaction.uid}`;
+      }
     },
     features: {
       devInteractions: { enabled: false },
@@ -96,8 +100,12 @@ export function createApp() {
     ? new DemoAccountSource()
     : new FileAccountSource();
 
-  interactions(app, provider, accountSource);
-  pidAuth(app, provider, accountSource);
+  if (config.authBrokerEnabled) {
+    authBroker(app, provider, accountSource);
+  } else {
+    interactions(app, provider, accountSource);
+    pidAuth(app, provider, accountSource);
+  }
   app.use("/as", provider.callback());
 
   return { app, provider };
