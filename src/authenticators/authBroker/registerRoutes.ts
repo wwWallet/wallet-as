@@ -1,7 +1,7 @@
 import Express from "express";
 import Provider from "oidc-provider";
-import config from "../config";
-import IAccountSource from "../interfaces/IAccountSource";
+import config from "../../config";
+import IAccountSource from "../../interfaces/IAccountSource";
 import * as openidClient from "openid-client";
 import { MemoryStore } from "wallet-common";
 
@@ -50,19 +50,9 @@ const getBrokerConfiguration = async () => {
   return brokerConfigurationPromise;
 };
 
-export default (app: Express.Application, provider: Provider, _accountSource: IAccountSource) => {
+export const registerAuthBrokerRoutes = (app: Express.Application, provider: Provider, _accountSource: IAccountSource) => {
   const startAuthBroker = async (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
     try {
-      if (!config.authBrokerEnabled) {
-        await provider.interactionFinished(
-          req,
-          res,
-          { error: "server_error", error_description: "Configuration Error" },
-          { mergeWithLastSubmission: false }
-        );
-        return;
-      }
-
       const interaction = await provider.interactionDetails(req, res);
       if (interaction.prompt.name !== "login") {
         return res.sendStatus(404);
@@ -87,6 +77,7 @@ export default (app: Express.Application, provider: Provider, _accountSource: IA
       return res.redirect(authorizationUrl.toString());
     } catch (err) {
       next(err);
+      return undefined;
     }
   };
 
@@ -162,7 +153,6 @@ export default (app: Express.Application, provider: Provider, _accountSource: IA
         );
         return;
       }
-
       // TODO: check if there is a better way to do this without cleaning up every time
       // before access
       await cleanupExpiredRequests();
@@ -186,9 +176,7 @@ export default (app: Express.Application, provider: Provider, _accountSource: IA
       const tokenSet = await openidClient.authorizationCodeGrant(
         brokerConfiguration,
         grantUrl,
-        {
-          expectedState: state,
-        }
+        { expectedState: state }
       );
 
       const idTokenClaims = tokenSet.claims();

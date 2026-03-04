@@ -2,18 +2,18 @@ import express from "express";
 import path from "path";
 import * as oidc from "oidc-provider";
 import interactions from "./routes/interactions";
-import pidAuth from "./routes/pidAuth";
-import authBroker from "./routes/authBroker";
 import { DemoAccountSource } from "./account/DemoAccountSource";
 import { FileAccountSource } from "./account/FileAccountSource";
 import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
 import config from "./config";
 import { interactionPolicies } from "./policies/interactionPolicies";
 import { issueRefreshToken } from "./policies/issueRefreshToken";
+import { loadAuthenticator } from "./authenticators";
 
 export function createApp() {
   const app = express();
   app.set('trust proxy', true);
+  const authenticator = loadAuthenticator(config.authenticator);
   // Keep templates alongside source for both ts-node and compiled runs.
   const viewsPath = path.join(__dirname, "../src/views");
 
@@ -70,8 +70,12 @@ export function createApp() {
     interactions: {
       policy: interactionPolicies(),
       url(ctx, interaction) {
-        if (config.authBrokerEnabled && interaction.prompt.name === "login") {
-          return `/as/interaction/${interaction.uid}/authBroker`;
+        if (interaction.prompt.name === "login") {
+          const loginUrl = authenticator.getLoginInteractionUrl(interaction);
+          if (loginUrl) {
+            return loginUrl;
+          }
+          throw new Error("No login interaction URL could be resolved from configured authenticator");
         }
         return `/as/interaction/${interaction.uid}`;
       }
@@ -100,13 +104,8 @@ export function createApp() {
     ? new DemoAccountSource()
     : new FileAccountSource();
 
-  // Always register core interaction routes
-  // authBroker augments login flow when enabled.
-  interactions(app, provider, accountSource);
-  pidAuth(app, provider, accountSource);
-  if (config.authBrokerEnabled) {
-    authBroker(app, provider, accountSource);
-  }
+  authenticator.registerRoutes(app, provider, accountSource);
+  interactions(app, provider, accountSource, authenticator);
   app.use("/as", provider.callback());
 
   return { app, provider };
