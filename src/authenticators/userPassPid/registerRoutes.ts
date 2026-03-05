@@ -1,10 +1,10 @@
 import Express from "express";
 import Provider from "oidc-provider";
-import config from "../config";
-import { OpenID4VPService } from "../services/OpenID4VPService";
+import config from "../../config";
+import { OpenID4VPService } from "../../services/OpenID4VPService";
 import { generateRandomIdentifier } from "wallet-common";
-import IAccountSource from "../interfaces/IAccountSource";
-import { isPidAuthAllowed } from "../util/pidAuthEligibility";
+import IAccountSource from "../../interfaces/IAccountSource";
+import { isPidAuthAllowed } from "../../util/pidAuthEligibility";
 
 const pidPresentationRequest = {
   id: "PID",
@@ -40,7 +40,73 @@ const extractClaims = (claims: Record<string, Array<{ key: string; value: string
   return Object.fromEntries(preferred.map((c) => [c.key, c.value]));
 };
 
-export default (app: Express.Application, provider: Provider, accountSource: IAccountSource) => {
+export const registerUserPassPidRoutes = (
+  app: Express.Application,
+  provider: Provider,
+  accountSource: IAccountSource
+) => {
+  app.get("/as/interaction/:uid", async (req, res, next) => {
+    try {
+      const interaction = await provider.interactionDetails(req, res);
+      if (interaction.prompt.name !== "login") {
+        return next();
+      }
+      if (interaction.uid !== req.params.uid) {
+        return res.sendStatus(404);
+      }
+
+      const client = await provider.Client.find(interaction.params.client_id as string);
+      return res.render("login", {
+        client,
+        uid: interaction.uid,
+        details: interaction.prompt.details,
+        params: interaction.params,
+        allowPidAuth: isPidAuthAllowed(interaction.params.scope as string),
+      });
+    } catch (err) {
+      next(err);
+      return undefined;
+    }
+  });
+
+  app.post("/as/interaction/:uid/login", async (req, res, next) => {
+    try {
+      const interaction = await provider.interactionDetails(req, res);
+      if (interaction.prompt.name !== "login") {
+        return res.sendStatus(404);
+      }
+      if (interaction.uid !== req.params.uid) {
+        return res.sendStatus(404);
+      }
+
+      const account = await accountSource.authenticate(req.body.login, req.body.password);
+      if (!account) {
+        const client = await provider.Client.find(interaction.params.client_id as string);
+        return res.status(401).render("login", {
+          client,
+          uid: interaction.uid,
+          details: interaction.prompt.details,
+          params: interaction.params,
+          allowPidAuth: isPidAuthAllowed(interaction.params.scope as string),
+          error: "Invalid credentials",
+          login: req.body.login,
+        });
+      }
+
+      const result = {
+        login: {
+          accountId: account.sub,
+          remember: false,
+        },
+      };
+      await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
+      return undefined;
+    } catch (err) {
+      next(err);
+      return undefined;
+    }
+  });
+
   const openID4VPService = new OpenID4VPService({
     baseUrl: config.serviceUrl,
     redirectUri: config.serviceUrl + "/verification/direct_post",
@@ -75,14 +141,15 @@ export default (app: Express.Application, provider: Provider, accountSource: IAc
       return res.redirect(modifiedUrl);
     } catch (err) {
       next(err);
+      return undefined;
     }
   });
 
   app.get("/as/interaction/:uid/pid/callback", async (_req, res) => {
-    res.render("pid-callback")
+    res.render("pid-callback");
   });
 
-  app.post("/as/interaction/:uid/pid/callback", async (req, res, next) => {
+  app.post("/as/interaction/:uid/pid/callback", async (req, res) => {
     try {
       const responseCode = req.body.response_code as string | undefined;
       if (!responseCode) {
@@ -119,9 +186,6 @@ export default (app: Express.Application, provider: Provider, accountSource: IAc
         presentationResult.rpState.vp_token == null ||
         presentationResult.rpState.claims == null
       ) {
-        const errorMsg = !presentationResult.status
-          ? presentationResult.error.message
-          : "Missing vp_token or claims in presentation result";
         const result = {
           error: "access_denied",
           error_description: "Failed to present required claims",
@@ -150,11 +214,9 @@ export default (app: Express.Application, provider: Provider, accountSource: IAc
         );
         return;
       }
-      const accountId = account.sub;
       const result = {
-        login: { accountId, remember: false },
+        login: { accountId: account.sub, remember: false },
       };
-
       await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
     } catch (err) {
       const result = {

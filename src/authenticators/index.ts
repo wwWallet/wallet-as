@@ -1,11 +1,11 @@
-import { createAuthBrokerAuthenticator } from "./authBroker";
-import { createUserPassPidAuthenticator } from "./userPassPid";
-import { Authenticator } from "./types";
+import { factory as authBrokerFactory } from "./authBroker";
+import { factory as userPassPidFactory } from "./userPassPid";
+import { Authenticator, AuthenticatorFactory } from "./types";
 
-const AUTHENTICATOR_FACTORIES: Record<string, () => Authenticator> = {
-  "user-pass-pid": createUserPassPidAuthenticator,
-  "auth-broker": createAuthBrokerAuthenticator,
-};
+const AUTHENTICATOR_FACTORIES: AuthenticatorFactory[] = [userPassPidFactory, authBrokerFactory];
+const AUTHENTICATOR_FACTORY_MAP = new Map(
+  AUTHENTICATOR_FACTORIES.map((factory) => [factory.id, factory])
+);
 
 export const loadAuthenticator = (id: string): Authenticator => {
   if (!id) {
@@ -20,13 +20,13 @@ export const loadAuthenticator = (id: string): Authenticator => {
     );
   }
 
-  const factory = AUTHENTICATOR_FACTORIES[id];
+  const factory = AUTHENTICATOR_FACTORY_MAP.get(id);
   if (!factory) {
     throw new Error(
-      `Unknown authenticator '${id}'. Supported authenticators: ${Object.keys(AUTHENTICATOR_FACTORIES).join(", ")}`
+      `Unknown authenticator '${id}'. Supported authenticators: ${AUTHENTICATOR_FACTORIES.map((entry) => entry.id).join(", ")}`
     );
   }
-  return factory();
+  return factory.create();
 };
 
-export type { Authenticator, InteractionDetails } from "./types";
+export type { Authenticator, AuthenticatorFactory, InteractionDetails } from "./types";

@@ -1,8 +1,8 @@
 import config from "../../config";
-import { Authenticator } from "../types";
+import { Authenticator, AuthenticatorFactory } from "../types";
 import { registerAuthBrokerRoutes } from "./registerRoutes";
 
-export const createAuthBrokerAuthenticator = (): Authenticator => {
+const createAuthenticator = (): Authenticator => {
   if (!config.authBrokerConfigured) {
     throw new Error(
       "auth-broker authenticator selected but AUTH_BROKER_PROVIDER_URL and AUTH_BROKER_CLIENT_ID are not configured"
@@ -20,4 +20,9 @@ export const createAuthBrokerAuthenticator = (): Authenticator => {
     shouldAutoApproveConsent: (interaction) => interaction.prompt.name === "consent",
     registerRoutes: registerAuthBrokerRoutes,
   };
+};
+
+export const factory: AuthenticatorFactory = {
+  id: "auth-broker",
+  create: createAuthenticator,
 };

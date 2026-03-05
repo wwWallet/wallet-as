@@ -14,3 +14,8 @@ export interface Authenticator {
     accountSource: IAccountSource
   ) => void;
 }
+
+export interface AuthenticatorFactory {
+  id: string;
+  create: () => Authenticator;
+}
