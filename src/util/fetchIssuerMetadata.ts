@@ -2,7 +2,7 @@ import axios from 'axios';
 
 /**
  * Fetches OpenID Credential Issuer metadata from the issuer's well-known endpoint.
- * @param metadataUrl The metadata URL of the credential issuer (e.g., https://issuer.example.com/openid/.well-known/openid-credential-issuer)
+ * @param metadataUrl The metadata URL of the credential issuer (e.g., https://issuer.example.com/.well-known/openid-credential-issuer/openid)
  * @returns The issuer metadata as a JSON object
  */
 export async function fetchIssuerMetadata(metadataUrl: string) {
