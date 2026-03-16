@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 dotenv.config();
 
+const serviceUrl = process.env.SERVICE_URL || "http://localhost:6060/as";
+
 const certsDir = path.resolve(process.cwd(), "./certs");
 let trustedRootCertificates: string[] = [];
 try {
@@ -18,8 +20,19 @@ try {
   trustedRootCertificates = [];
 }
 
+const authBrokerProviderUrl =
+  process.env.AUTH_BROKER_PROVIDER_URL || process.env.AUTH_BROKER_ISSUER || null;
+const authBrokerClientId = process.env.AUTH_BROKER_CLIENT_ID || null;
+const authBrokerClientSecret = process.env.AUTH_BROKER_CLIENT_SECRET || null;
+const authBrokerScope = process.env.AUTH_BROKER_SCOPE || "openid";
+const authBrokerRedirectUri =
+  process.env.AUTH_BROKER_REDIRECT_URI ||
+  `${serviceUrl}/interaction/authBroker/callback`;
+const authenticator = process.env.AUTHENTICATOR?.trim() || "";
+const authBrokerConfigured = Boolean(authBrokerProviderUrl && authBrokerClientId);
+
 export default {
-  serviceUrl: process.env.SERVICE_URL || "http://localhost:6060/as",
+  serviceUrl: serviceUrl,
   walletUrl: process.env.WALLET_URL || "http://localhost:3000",
   introspectionClient: process.env.INTROSPECTION_CLIENT || null,
   introspectionClientSecret: process.env.INTROSPECTION_CLIENT_SECRET || null,
@@ -28,10 +41,17 @@ export default {
     accessToken: Number(process.env.ACCESS_TOKEN_TTL) || 30,
     refreshToken: Number(process.env.REFRESH_TOKEN_TTL) || 2592000
   },
-  demoUsername: process.env.DEMO_USERNAME || null,
-  demoPassword: process.env.DEMO_PASSWORD || null,
+  demoUsername: process.env.USER_PASS_PID_DEMO_USERNAME || null,
+  demoPassword: process.env.USER_PASS_PID_DEMO_PASSWORD || null,
   trustedRootCertificates: trustedRootCertificates,
   trustedIssuers: process.env.TRUSTED_ISSUERS
 		? process.env.TRUSTED_ISSUERS.split(',')
 		: ["http://localhost:8003"],
+  authBrokerProviderUrl: authBrokerProviderUrl,
+  authBrokerClientId: authBrokerClientId,
+  authBrokerClientSecret: authBrokerClientSecret,
+  authBrokerScope: authBrokerScope,
+  authBrokerRedirectUri: authBrokerRedirectUri,
+  authBrokerConfigured: authBrokerConfigured,
+  authenticator: authenticator,
 }

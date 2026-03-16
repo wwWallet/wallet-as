@@ -2,17 +2,18 @@ import express from "express";
 import path from "path";
 import * as oidc from "oidc-provider";
 import interactions from "./routes/interactions";
-import pidAuth from "./routes/pidAuth";
 import { DemoAccountSource } from "./account/DemoAccountSource";
 import { FileAccountSource } from "./account/FileAccountSource";
 import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
 import config from "./config";
 import { interactionPolicies } from "./policies/interactionPolicies";
 import { issueRefreshToken } from "./policies/issueRefreshToken";
+import { loadAuthenticator } from "./authenticators";
 
 export function createApp() {
   const app = express();
   app.set('trust proxy', true);
+  const authenticator = loadAuthenticator(config.authenticator);
   // Keep templates alongside source for both ts-node and compiled runs.
   const viewsPath = path.join(__dirname, "../src/views");
 
@@ -69,8 +70,15 @@ export function createApp() {
     interactions: {
       policy: interactionPolicies(),
       url(ctx, interaction) {
-          return `/as/interaction/${interaction.uid}`;
+        if (interaction.prompt.name === "login") {
+          const loginUrl = authenticator.getLoginInteractionUrl(interaction);
+          if (loginUrl) {
+            return loginUrl;
+          }
+          throw new Error("No login interaction URL could be resolved from configured authenticator");
         }
+        return `/as/interaction/${interaction.uid}`;
+      }
     },
     features: {
       devInteractions: { enabled: false },
@@ -96,8 +104,8 @@ export function createApp() {
     ? new DemoAccountSource()
     : new FileAccountSource();
 
-  interactions(app, provider, accountSource);
-  pidAuth(app, provider, accountSource);
+  authenticator.registerRoutes(app, provider, accountSource);
+  interactions(app, provider, accountSource, authenticator);
   app.use("/as", provider.callback());
 
   return { app, provider };
