@@ -32,6 +32,7 @@ describe("app integration", () => {
     beforeAll(async () => {
       process.env = {
         ...originalEnv,
+        AUTHENTICATOR: "user-pass-pid",
         INTROSPECTION_CLIENT: "introspect-client",
         INTROSPECTION_CLIENT_SECRET: "introspect-secret",
       };
@@ -91,6 +92,7 @@ describe("app integration", () => {
     it("uses ACCESS_TOKEN_TTL for token response expires_in", async () => {
       process.env = {
         ...originalEnv,
+        AUTHENTICATOR: "user-pass-pid",
         ACCESS_TOKEN_TTL: "120",
       };
 
