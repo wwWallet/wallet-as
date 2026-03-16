@@ -31,10 +31,31 @@ Environment variables and how they are used:
 | `METADATA_URL` | Credential Issuer metadata URL. | Used during consent to fetch display metadata for requested scopes. |
 | `ACCESS_TOKEN_TTL` | Access token TTL (seconds). | Default: `30`|
 | `REFRESH_TOKEN_TTL` | Refresh token TTL (seconds). | Default: `2592000` |
-| `DEMO_USERNAME` | Demo username for the login screen and demo account. | Enables demo mode; account is created with this username. |
-| `DEMO_PASSWORD` | Demo password shown in the login form. | Only used to prefill the login form; authentication does not check the password. |
-| `AUTH_BROKER_PROVIDER_URL` | External OIDC provider URL for auth broker login. | Enable with `AUTH_BROKER_CLIENT_ID`. |
-| `AUTH_BROKER_CLIENT_ID` | OIDC client ID for external auth broker. | Required with `AUTH_BROKER_PROVIDER_URL`. |
-| `AUTH_BROKER_CLIENT_SECRET` | OIDC client secret for external auth broker. | Optional for public clients. |
-| `AUTH_BROKER_SCOPE` | Space-separated scopes sent to external IdP authorize endpoint. | Default: `openid profile email`. |
-| `AUTH_BROKER_REDIRECT_URI` | Redirect URI handled by wallet-as broker callback route. | Default: `http://localhost:6060/as/interaction/authBroker/callback`. |
+| `AUTHENTICATOR` | Selected authenticator to load (single value). | Supported values: `user-pass-pid` or `auth-broker`. |
+| `USER_PASS_PID_DEMO_USERNAME` | Demo username for the `user-pass-pid` login screen and demo account. | Used only when `AUTHENTICATOR=user-pass-pid`. |
+| `USER_PASS_PID_DEMO_PASSWORD` | Demo password shown in `user-pass-pid` login form. | Used only for prefill; authentication does not check password. |
+| `AUTH_BROKER_PROVIDER_URL` | External OIDC provider URL for the `auth-broker` authenticator. | Required when `auth-broker` is enabled. |
+| `AUTH_BROKER_CLIENT_ID` | OIDC client ID for the `auth-broker` authenticator. | Required when `auth-broker` is enabled. |
+| `AUTH_BROKER_CLIENT_SECRET` | OIDC client secret for the `auth-broker` authenticator. | Optional for public clients. |
+| `AUTH_BROKER_SCOPE` | Space-separated scopes sent to external IdP authorize endpoint by `auth-broker`. | Default: `openid profile email`. |
+| `AUTH_BROKER_REDIRECT_URI` | Redirect URI handled by wallet-as auth-broker callback route. | Default: `http://localhost:6060/as/interaction/authBroker/callback`. |
+
+## Authenticators
+`wallet-as` supports explicit authenticator loading at startup.
+
+- Authenticator modules live in `src/authenticators/*`.
+- Active authenticator is loaded from `AUTHENTICATOR` in `src/authenticators/index.ts`.
+- Built-in authenticators are `user-pass-pid` (login form or PID presentation) and `auth-broker` (external OIDC IdP broker flow).
+
+### Authenticator hooks
+Authenticators implement the `Authenticator` interface from `src/authenticators/types.ts`:
+
+- `getLoginInteractionUrl(interaction)`: Resolve login interaction URL for this authenticator.
+- `registerRoutes(app, provider, accountSource)`: Register authenticator-owned routes.
+- `shouldAutoApproveConsent(interaction)`: Optional consent skipping.
+
+## Contributor Guide: Adding an Authenticator
+1. Create a module under `src/authenticators/<your-authenticator>/`.
+2. Export a factory returning `Authenticator`.
+3. Implement route registration and hooks needed by your flow.
+4. Register the factory in `src/authenticators/index.ts`.

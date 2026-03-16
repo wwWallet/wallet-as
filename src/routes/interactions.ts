@@ -4,12 +4,16 @@ import IAccountSource from "../interfaces/IAccountSource";
 import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 import { createVctProviderFromEnv } from "../util/vctResolution";
 import { getConsentPreviewDataUri } from "../util/consentPreview";
-import { isPidAuthAllowed } from "../util/pidAuthEligibility";
-import config from "../config";
+import { Authenticator } from "../authenticators";
 
 const vctEngine = createVctProviderFromEnv();
 
-export default (app: Express.Application, provider: Provider, AccountSource: IAccountSource) => {
+export default (
+  app: Express.Application,
+  provider: Provider,
+  _accountSource: IAccountSource,
+  authenticator: Authenticator
+) => {
   const buildConsentResult = async (interaction: Awaited<ReturnType<typeof provider.interactionDetails>>) => {
     const {
       prompt: { name },
@@ -102,17 +106,12 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
 
         switch (prompt.name) {
           case 'login': {
-            return res.render('login', {
-              client,
-              uid,
-              details: prompt.details,
-              params,
-              allowPidAuth: isPidAuthAllowed(params.scope as string),
-              allowAuthBroker: config.authBrokerEnabled,
-            });
+            return res.sendStatus(404);
           }
           case 'consent': {
-            if (config.authBrokerEnabled) {
+            const shouldAutoApproveConsent =
+              authenticator.shouldAutoApproveConsent?.(interaction) === true;
+            if (shouldAutoApproveConsent) {
               const result = await buildConsentResult(interaction);
               await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: true });
               return undefined;
@@ -142,41 +141,6 @@ export default (app: Express.Application, provider: Provider, AccountSource: IAc
         return next(err);
       }
     });
-
-  app.post('/as/interaction/:uid/login', async (req, res, next) => {
-    try {
-      const interaction = await provider.interactionDetails(req, res);
-      if (interaction.prompt.name !== 'login') {
-        return res.sendStatus(404);
-      }
-      const account = await AccountSource.authenticate(req.body.login, req.body.password);
-
-      if (!account) {
-        const client = await provider.Client.find(interaction.params.client_id as string);
-        return res.status(401).render('login', {
-          client,
-          uid: interaction.uid,
-          details: interaction.prompt.details,
-          params: interaction.params,
-          allowPidAuth: isPidAuthAllowed(interaction.params.scope as string),
-          allowAuthBroker: config.authBrokerEnabled,
-          error: 'Invalid credentials',
-          login: req.body.login,
-        });
-      }
-
-      const result = {
-        login: {
-          accountId: account.sub,
-          remember: false
-        },
-      };
-
-      await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
-    } catch (err) {
-      next(err);
-    }
-  });
 
   app.post('/as/interaction/:uid/confirm', async (req, res, next) => {
       try {
