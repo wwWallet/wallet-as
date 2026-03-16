@@ -59,5 +59,3 @@ Authenticators implement the `Authenticator` interface from `src/authenticators/
 2. Export a factory returning `Authenticator`.
 3. Implement route registration and hooks needed by your flow.
 4. Register the factory in `src/authenticators/index.ts`.
-5. Add your authenticator ID to `AUTHENTICATOR` documentation and `.env.template`.
-6. Keep authenticator-specific logic outside core routes unless adding a generic hook.
