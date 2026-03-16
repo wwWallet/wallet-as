@@ -14,12 +14,6 @@ export const loadAuthenticator = (id: string): Authenticator => {
     );
   }
 
-  if (id.includes(",") || id.includes("|")) {
-    throw new Error(
-      "AUTHENTICATOR must be a single value, not a list"
-    );
-  }
-
   const factory = AUTHENTICATOR_FACTORY_MAP.get(id);
   if (!factory) {
     throw new Error(

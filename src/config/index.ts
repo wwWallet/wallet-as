@@ -24,7 +24,7 @@ const authBrokerProviderUrl =
   process.env.AUTH_BROKER_PROVIDER_URL || process.env.AUTH_BROKER_ISSUER || null;
 const authBrokerClientId = process.env.AUTH_BROKER_CLIENT_ID || null;
 const authBrokerClientSecret = process.env.AUTH_BROKER_CLIENT_SECRET || null;
-const authBrokerScope = process.env.AUTH_BROKER_SCOPE || "openid profile email";
+const authBrokerScope = process.env.AUTH_BROKER_SCOPE || "openid";
 const authBrokerRedirectUri =
   process.env.AUTH_BROKER_REDIRECT_URI ||
   `${serviceUrl}/interaction/authBroker/callback`;
