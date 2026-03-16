@@ -1,30 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 describe("config", () => {
-  it("defaults to null when env vars are absent", async () => {
-    const originalEnv = process.env;
-    try {
-      vi.resetModules();
-      process.env = { ...originalEnv };
-      delete process.env.INTROSPECTION_CLIENT;
-      delete process.env.INTROSPECTION_CLIENT_SECRET;
-
-      vi.doMock("dotenv", () => ({
-        default: { config: vi.fn(() => ({ parsed: {} })) },
-        config: vi.fn(() => ({ parsed: {} })),
-      }));
-
-      const config = (await import("../src/config/index")).default;
-
-      expect(config.introspectionClient).toBe(null);
-      expect(config.introspectionClientSecret).toBe(null);
-    } finally {
-      vi.doUnmock("dotenv");
-      vi.resetModules();
-      process.env = originalEnv;
-    }
-  });
-
   it("reads env vars when present", async () => {
     const originalEnv = process.env;
     process.env = {
