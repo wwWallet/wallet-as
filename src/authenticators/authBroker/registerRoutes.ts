@@ -11,18 +11,22 @@ type PendingBrokerRequest = {
   createdAt: number;
 };
 
-const requestStore = new MemoryStore<string, PendingBrokerRequest>();
+const requestStore = new MemoryStore<string, PendingBrokerRequest>(10000);
 const REQUEST_TTL_MS = 10 * 60 * 1000;
 let brokerConfigurationPromise: Promise<openidClient.Configuration> | null = null;
 
-const cleanupExpiredRequests = async () => {
-  const now = Date.now();
-  const allRequests = await requestStore.getAll();
-  await Promise.all(allRequests.map(async (value) => {
-    if (now - value.createdAt > REQUEST_TTL_MS) {
-      await requestStore.delete(value.state);
-    }
-  }));
+const getValidRequestState = async (state: string): Promise<PendingBrokerRequest | undefined> => {
+  const requestState = await requestStore.get(state);
+  if (!requestState) {
+    return undefined;
+  }
+
+  if (Date.now() - requestState.createdAt > REQUEST_TTL_MS) {
+    await requestStore.delete(state);
+    return undefined;
+  }
+
+  return requestState;
 };
 
 const getBrokerConfiguration = async () => {
@@ -59,7 +63,6 @@ export const registerAuthBrokerRoutes = (app: Express.Application, provider: Pro
       }
 
       const brokerConfiguration = await getBrokerConfiguration();
-      await cleanupExpiredRequests();
 
       const state = openidClient.randomState();
       await requestStore.set(state, {
@@ -93,8 +96,7 @@ export const registerAuthBrokerRoutes = (app: Express.Application, provider: Pro
       });
     }
 
-    await cleanupExpiredRequests();
-    const requestState = await requestStore.get(state);
+    const requestState = await getValidRequestState(state);
     if (!requestState) {
       return res.status(400).json({
         error: "invalid_request",
@@ -153,10 +155,8 @@ export const registerAuthBrokerRoutes = (app: Express.Application, provider: Pro
         );
         return;
       }
-      // TODO: check if there is a better way to do this without cleaning up every time
-      // before access
-      await cleanupExpiredRequests();
-      const requestState = await requestStore.get(state);
+
+      const requestState = await getValidRequestState(state);
       if (!requestState || requestState.uid !== interaction.uid) {
         await provider.interactionFinished(
           req,
@@ -168,10 +168,8 @@ export const registerAuthBrokerRoutes = (app: Express.Application, provider: Pro
       }
 
       const brokerConfiguration = await getBrokerConfiguration();
-      // Incoming url has code/state from internal redirect
       const incoming = new URL(req.originalUrl, `${req.protocol}://${req.get("host")}`);
       const grantUrl = new URL(config.authBrokerRedirectUri);
-      // Pass the full query to grant function
       grantUrl.search = incoming.search;
       const tokenSet = await openidClient.authorizationCodeGrant(
         brokerConfiguration,
@@ -180,7 +178,6 @@ export const registerAuthBrokerRoutes = (app: Express.Application, provider: Pro
       );
 
       const idTokenClaims = tokenSet.claims();
-      // TODO: use idToken.sub for now but consider fetching profile
       const externalSubject = idTokenClaims?.sub as string | undefined;
       if (!externalSubject) {
         await provider.interactionFinished(
