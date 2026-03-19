@@ -31,7 +31,7 @@ Environment variables and how they are used:
 | `METADATA_URL` | Credential Issuer metadata URL. | Used during consent to fetch display metadata for requested scopes. |
 | `ACCESS_TOKEN_TTL` | Access token TTL (seconds). | Default: `30`|
 | `REFRESH_TOKEN_TTL` | Refresh token TTL (seconds). | Default: `2592000` |
-| `AUTHENTICATOR` | Selected authenticator to load (single value). | Supported values: `user-pass-pid` or `auth-broker`. |
+| `AUTHENTICATOR` | Selected authenticator to load (single value). | Supported values: `user-pass-pid` or `auth-broker`. Defaults to `user-pass-pid` if unset. |
 | `USER_PASS_PID_DEMO_USERNAME` | Demo username for the `user-pass-pid` login screen and demo account. | Used only when `AUTHENTICATOR=user-pass-pid`. |
 | `USER_PASS_PID_DEMO_PASSWORD` | Demo password shown in `user-pass-pid` login form. | Used only for prefill; authentication does not check password. |
 | `AUTH_BROKER_PROVIDER_URL` | External OIDC provider URL for the `auth-broker` authenticator. | Required when `auth-broker` is enabled. |

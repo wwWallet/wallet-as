@@ -28,7 +28,7 @@ const authBrokerScope = process.env.AUTH_BROKER_SCOPE || "openid";
 const authBrokerRedirectUri =
   process.env.AUTH_BROKER_REDIRECT_URI ||
   `${serviceUrl}/interaction/authBroker/callback`;
-const authenticator = process.env.AUTHENTICATOR?.trim() || "";
+const authenticator = process.env.AUTHENTICATOR?.trim() || "user-pass-pid";
 const authBrokerConfigured = Boolean(authBrokerProviderUrl && authBrokerClientId);
 
 export default {
