@@ -54,6 +54,23 @@ const getBrokerConfiguration = async () => {
   return brokerConfigurationPromise;
 };
 
+const logoutAndFinishUrl = (brokerConfiguration: openidClient.Configuration, finishUrl: string, idToken: string | undefined) => {
+  if (config.authBrokerSkipLogout || !brokerConfiguration.serverMetadata().end_session_endpoint || !idToken) {
+    return finishUrl;
+  }
+
+  try {
+    return openidClient.buildEndSessionUrl(brokerConfiguration, {
+      post_logout_redirect_uri: finishUrl,
+      id_token_hint: idToken,
+      client_id: config.authBrokerClientId || ""
+    }).toString();
+  } catch(e) {
+    console.error(e);
+    return finishUrl;
+  }
+}
+
 export const registerAuthBrokerRoutes = (app: Express.Application, provider: Provider, _accountSource: IAccountSource) => {
   const startAuthBroker = async (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
     try {
@@ -180,19 +197,21 @@ export const registerAuthBrokerRoutes = (app: Express.Application, provider: Pro
       const idTokenClaims = tokenSet.claims();
       const externalSubject = idTokenClaims?.sub as string | undefined;
       if (!externalSubject) {
-        await provider.interactionFinished(
+        const interactionFinishUri = await provider.interactionResult(
           req,
           res,
           { error: "access_denied", error_description: "Missing subject in IdP token response" },
           { mergeWithLastSubmission: false }
         );
-        return;
+        return res.redirect(logoutAndFinishUrl(brokerConfiguration, interactionFinishUri, tokenSet.id_token));
       }
 
       const result = {
         login: { accountId: externalSubject, remember: false },
       };
-      await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
+
+      const interactionFinishUri = await provider.interactionResult(req, res, result, { mergeWithLastSubmission: false })
+      return res.redirect(logoutAndFinishUrl(brokerConfiguration, interactionFinishUri, tokenSet.id_token));
     } catch (err) {
       const errorDescription = err instanceof Error ? err.message : "External authentication failed";
       try {
