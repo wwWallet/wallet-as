@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import request from "supertest";
-import { createApp } from "../src/app";
+import { createApp } from "../../src/app";
 
 describe("app integration", () => {
   const { app } = createApp();
@@ -38,7 +38,7 @@ describe("app integration", () => {
       };
 
       vi.resetModules();
-      const { createApp: createIntrospectionApp } = await import("../src/app");
+      const { createApp: createIntrospectionApp } = await import("../../src/app");
       const { app: introspectionApp } = createIntrospectionApp();
       agent = request.agent(introspectionApp);
 
@@ -97,7 +97,7 @@ describe("app integration", () => {
       };
 
       vi.resetModules();
-      const { createApp: createTtlApp } = await import("../src/app");
+      const { createApp: createTtlApp } = await import("../../src/app");
       const { app: ttlApp } = createTtlApp();
       const agent = request.agent(ttlApp);
 

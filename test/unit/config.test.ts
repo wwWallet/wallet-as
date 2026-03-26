@@ -10,7 +10,7 @@ describe("config", () => {
     };
 
     vi.resetModules();
-    const config = (await import("../src/config")).default;
+    const config = (await import("../../src/config")).default;
 
     expect(config.introspectionClient).toBe("client-a");
     expect(config.introspectionClientSecret).toBe("secret-a");
