@@ -5,6 +5,7 @@ import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 import { createVctProviderFromEnv } from "../util/vctResolution";
 import { getConsentPreviewDataUri } from "../util/consentPreview";
 import { Authenticator } from "../authenticators";
+import { saveIssuerStateForGrant } from "../util/issuerStateStore";
 
 const vctEngine = createVctProviderFromEnv();
 
@@ -58,6 +59,9 @@ export default (
     }
 
     grantId = await grant.save();
+    if (params.issuer_state) {
+      await saveIssuerStateForGrant(grantId, params.issuer_state);
+    }
 
     const consent: { grantId?: string } = {};
     if (isNewGrant) {
