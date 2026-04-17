@@ -7,6 +7,7 @@ describe("config", () => {
       ...originalEnv,
       INTROSPECTION_CLIENT: "client-a",
       INTROSPECTION_CLIENT_SECRET: "secret-a",
+      GRANT_REUSE_WINDOW_SECONDS: "33",
     };
 
     vi.resetModules();
@@ -14,6 +15,7 @@ describe("config", () => {
 
     expect(config.introspectionClient).toBe("client-a");
     expect(config.introspectionClientSecret).toBe("secret-a");
+    expect(config.ttl.grantReuseWindowSeconds).toBe(33);
 
     process.env = originalEnv;
   });

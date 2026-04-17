@@ -10,6 +10,7 @@ import { interactionPolicies } from "./policies/interactionPolicies";
 import { issueRefreshToken } from "./policies/issueRefreshToken";
 import { loadAuthenticator } from "./authenticators";
 import { getIssuerStateForGrant } from "./util/issuerStateStore";
+import { loadReusableGrant } from "./util/loadReusableGrant";
 
 export function createApp() {
   const app = express();
@@ -36,6 +37,7 @@ export function createApp() {
       client_id: "test",
       client_secret: "test",
       redirect_uris: ["http://localhost:9876/callback"],
+      grant_types: ["authorization_code", "refresh_token"],
       logo_uri:
         "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
     },
@@ -43,6 +45,7 @@ export function createApp() {
       client_id: "test2",
       client_secret: "test2",
       redirect_uris: ["http://localhost:9876/callback"],
+      grant_types: ["authorization_code", "refresh_token"],
       logo_uri:
         "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
     },
@@ -50,6 +53,7 @@ export function createApp() {
       client_id: "1233",
       token_endpoint_auth_method: "none",
       redirect_uris: [config.walletUrl],
+      post_logout_redirect_uris: [config.walletUrl],
       logo_uri:
         "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
     },
@@ -98,6 +102,9 @@ export function createApp() {
     ttl: {
       AccessToken: config.ttl.accessToken,
       RefreshToken: config.ttl.refreshToken,
+    },
+    async loadExistingGrant(ctx) {
+      return loadReusableGrant(ctx, config.ttl.grantReuseWindowSeconds);
     },
     extraParams: ['issuer_state'],
     async extraTokenClaims(_ctx, token) {

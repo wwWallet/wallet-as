@@ -149,6 +149,47 @@ describe("app integration", () => {
       expect(tokenResponse.expiresIn).toBe(120);
     });
   });
+
+  describe("grant reuse window", () => {
+    const originalEnv = process.env;
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    it("still allows refresh token exchange after grant reuse window passes", async () => {
+      process.env = {
+        ...originalEnv,
+        AUTHENTICATOR: "user-pass-pid",
+        GRANT_REUSE_WINDOW_SECONDS: "1",
+      };
+
+      vi.resetModules();
+      const { createApp: createGrantWindowApp } = await import("../src/app");
+      const { app: grantWindowApp } = createGrantWindowApp();
+      const agent = request.agent(grantWindowApp);
+
+      const tokenResponse = await issueAccessToken(agent);
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      const refreshedTokenRes = await agent
+        .post("/as/token")
+        .auth("test", "test")
+        .type("form")
+        .send({
+          grant_type: "refresh_token",
+          refresh_token: tokenResponse.refreshToken,
+        });
+
+      expect(
+        refreshedTokenRes.status,
+        JSON.stringify(refreshedTokenRes.body)
+      ).toBe(200);
+
+      expect(typeof refreshedTokenRes.body.access_token).toBe("string");
+      expect(refreshedTokenRes.body.access_token.length).toBeGreaterThan(0);
+    });
+  });
 });
 
 function extractInteractionUid(location: string) {
@@ -287,7 +328,9 @@ async function issueAccessToken(
     .expect(200);
 
   const accessToken = tokenRes.body.access_token as string;
+  const refreshToken = tokenRes.body.refresh_token as string;
   expect(accessToken).toBeTruthy();
+  expect(refreshToken).toBeTruthy();
   const expiresIn = tokenRes.body.expires_in as number;
 
   const discoveryRes = await agent
@@ -298,5 +341,5 @@ async function issueAccessToken(
     discoveryRes.body.introspection_endpoint as string
   ).pathname;
 
-  return { accessToken, introspectionPath, expiresIn };
+  return { accessToken, refreshToken, introspectionPath, expiresIn };
 }
