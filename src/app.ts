@@ -9,6 +9,7 @@ import config from "./config";
 import { interactionPolicies } from "./policies/interactionPolicies";
 import { issueRefreshToken } from "./policies/issueRefreshToken";
 import { loadAuthenticator } from "./authenticators";
+import { getIssuerStateForGrant } from "./util/issuerStateStore";
 
 export function createApp() {
   const app = express();
@@ -97,7 +98,12 @@ export function createApp() {
     ttl: {
       AccessToken: config.ttl.accessToken,
       RefreshToken: config.ttl.refreshToken,
-    }
+    },
+    extraParams: ['issuer_state'],
+    async extraTokenClaims(_ctx, token) {
+      const issuerState = await getIssuerStateForGrant((token as any).grantId);
+      return issuerState ? { issuer_state: issuerState } : undefined;
+    },
   });
   provider.proxy = true;
   const accountSource = config.demoUsername

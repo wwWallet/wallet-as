@@ -39,6 +39,7 @@ Environment variables and how they are used:
 | `AUTH_BROKER_CLIENT_SECRET` | OIDC client secret for the `auth-broker` authenticator. | Optional for public clients. |
 | `AUTH_BROKER_SCOPE` | Space-separated scopes sent to external IdP authorize endpoint by `auth-broker`. | Default: `openid profile email`. |
 | `AUTH_BROKER_REDIRECT_URI` | Redirect URI handled by wallet-as auth-broker callback route. | Default: `http://localhost:6060/as/interaction/authBroker/callback`. |
+| `AUTH_BROKER_SKIP_LOGOUT` | Skip external IdP logout even if IdP supports it in metadata in `auth-broker` callback flow. | Optional; set to `true` when logout should be skipped. |
 
 ## Authenticators
 `wallet-as` supports explicit authenticator loading at startup.

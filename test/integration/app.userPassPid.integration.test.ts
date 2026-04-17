@@ -80,6 +80,50 @@ describe("app integration", () => {
         .expect(200);
       expect(unrelatedClientRes.body.active).toBe(false);
     });
+
+    it("accepts issuer_state in pushed authorization requests", async () => {
+      const discoveryRes = await agent
+        .get("/as/.well-known/openid-configuration")
+        .expect(200);
+      const pushedAuthPath = new URL(
+        discoveryRes.body.pushed_authorization_request_endpoint as string
+      ).pathname;
+
+      const parRes = await agent
+        .post(pushedAuthPath)
+        .auth("test", "test")
+        .type("form")
+        .send({
+          client_id: "test",
+          redirect_uri: "http://localhost:9876/callback",
+          response_type: "code",
+          scope: "openid",
+          state: "state-123",
+          issuer_state: "issuer-state-123",
+        })
+        .expect(201);
+
+      expect(typeof parRes.body.request_uri).toBe("string");
+      expect(parRes.body.request_uri.length).toBeGreaterThan(0);
+      expect(typeof parRes.body.expires_in).toBe("number");
+    });
+
+    it("returns issuer_state in introspection after token issuance", async () => {
+      const issuerState = "issuer-state-123";
+      const tokenResponse = await issueAccessToken(agent, {
+        issuer_state: issuerState,
+      });
+
+      const introspectionRes = await agent
+        .post(tokenResponse.introspectionPath)
+        .auth("test", "test")
+        .type("form")
+        .send({ token: tokenResponse.accessToken })
+        .expect(200);
+
+      expect(introspectionRes.body.active).toBe(true);
+      expect(introspectionRes.body.issuer_state).toBe(issuerState);
+    });
   });
 
   describe("token ttl", () => {
@@ -177,7 +221,10 @@ function tryExtractAuthCode(location: string, redirectUri: string) {
   }
 }
 
-async function issueAccessToken(agent: request.SuperAgentTest) {
+async function issueAccessToken(
+  agent: request.SuperAgentTest,
+  authQuery: Record<string, string> = {}
+) {
   const authRes = await agent
     .get("/as/auth")
     .query({
@@ -186,6 +233,7 @@ async function issueAccessToken(agent: request.SuperAgentTest) {
       response_type: "code",
       scope: "openid",
       state: "state-123",
+      ...authQuery,
     })
     .expect(303);
 
