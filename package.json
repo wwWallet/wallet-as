@@ -8,8 +8,8 @@
     "start": "node dist/app.js",
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "test:unit": "vitest",
-    "test:integration": "vitest test/app.integration.test.ts"
+    "test:unit": "vitest test/unit/*.test.ts",
+    "test:integration": "vitest test/integration/*.test.ts"
   },
   "author": "",
   "license": "BSD-2-Clause",

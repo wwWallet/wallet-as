@@ -4,7 +4,7 @@ describe("introspectionAllowedPolicy", () => {
   it("rejects non client_secret_basic auth", async () => {
     vi.resetModules();
     const { introspectionAllowedPolicy } = await import(
-      "../src/util/introspectionHelpers"
+      "../../src/util/introspectionHelpers"
     );
 
     const ctx = {} as any;
@@ -17,7 +17,7 @@ describe("introspectionAllowedPolicy", () => {
   it("allows matching client and token", async () => {
     vi.resetModules();
     const { introspectionAllowedPolicy } = await import(
-      "../src/util/introspectionHelpers"
+      "../../src/util/introspectionHelpers"
     );
 
     const ctx = {} as any;
@@ -40,7 +40,7 @@ describe("introspectionAllowedPolicy", () => {
 
     vi.resetModules();
     const { introspectionAllowedPolicy } = await import(
-      "../src/util/introspectionHelpers"
+      "../../src/util/introspectionHelpers"
     );
 
     const ctx = {} as any;
