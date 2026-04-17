@@ -100,6 +100,7 @@ describe("app integration", () => {
         AUTH_BROKER_CLIENT_SECRET: brokerClientSecret,
         AUTH_BROKER_SCOPE: "openid",
         AUTH_BROKER_REDIRECT_URI: externalRedirectUri,
+        AUTH_BROKER_SKIP_LOGOUT: "true",
         INTROSPECTION_CLIENT: "introspect-client",
         INTROSPECTION_CLIENT_SECRET: "introspect-secret",
       };
@@ -202,6 +203,7 @@ describe("app integration", () => {
         AUTH_BROKER_CLIENT_SECRET: brokerClientSecret,
         AUTH_BROKER_SCOPE: "openid",
         AUTH_BROKER_REDIRECT_URI: externalRedirectUri,
+        AUTH_BROKER_SKIP_LOGOUT: "true",
         ACCESS_TOKEN_TTL: "120",
       };
 
