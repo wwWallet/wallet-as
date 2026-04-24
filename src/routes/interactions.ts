@@ -1,7 +1,6 @@
 import Express from "express";
 import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
-import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 import { createVctProviderFromEnv } from "../util/vctResolution";
 import { getConsentPreviewDataUri } from "../util/consentPreview";
 import { Authenticator } from "../authenticators";
@@ -87,7 +86,14 @@ export default (
           const metadataUrl = process.env.METADATA_URL;
           if (metadataUrl) {
             try {
-              issuerMetadata = await fetchIssuerMetadata(metadataUrl);
+              const issuerMetadataResponse = await fetch(metadataUrl, {
+                headers: {
+                  'Accept': 'application/json',
+                },
+              });
+              if (issuerMetadataResponse.ok) {
+                issuerMetadata = await issuerMetadataResponse.json();
+              }
               if (issuerMetadata) {
                 credentialConfigs = String(params.scope ?? "")
                 .split(" ")
