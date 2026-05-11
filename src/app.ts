@@ -19,7 +19,7 @@ export function createApp() {
   const viewsPath = path.join(__dirname, "../src/views");
 
   // Serve static files
-  app.use("/as", express.static(path.join(process.cwd(), "public")));
+  app.use(express.static(path.join(process.cwd(), "public")));
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -30,7 +30,7 @@ export function createApp() {
   app.locals.demoUsername = config.demoUsername;
   app.locals.demoPassword = config.demoPassword;
 
-  app.get("/as", (_req, res) => res.render("index"));
+  app.get("/", (_req, res) => res.render("index"));
   const oidClients: oidc.ClientMetadata[] = [
     {
       client_id: "test",
@@ -78,7 +78,7 @@ export function createApp() {
           }
           throw new Error("No login interaction URL could be resolved from configured authenticator");
         }
-        return `/as/interaction/${interaction.uid}`;
+        return `/interaction/${interaction.uid}`;
       }
     },
     features: {
@@ -112,7 +112,7 @@ export function createApp() {
 
   authenticator.registerRoutes(app, provider, accountSource);
   interactions(app, provider, accountSource, authenticator);
-  app.use("/as", provider.callback());
+  app.use(provider.callback());
 
   return { app, provider };
 }

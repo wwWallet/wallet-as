@@ -7,7 +7,7 @@ const createAuthenticator = (): Authenticator => ({
     if (interaction.prompt.name !== "login") {
       return null;
     }
-    return `/as/interaction/${interaction.uid}`;
+    return `/interaction/${interaction.uid}`;
   },
   registerRoutes: registerUserPassPidRoutes,
 });
