@@ -43,14 +43,14 @@ describe("app integration", () => {
   const externalRedirectUri = "http://localhost:9876/callback";
 
   it("serves the home page", async () => {
-    const res = await request(app).get("/as/");
+    const res = await request(app).get("/");
 
     expect(res.status).toBe(200);
     expect(res.text).toContain("Wallet Authorization Server");
   });
 
   it("serves OIDC discovery metadata", async () => {
-    const res = await request(app).get("/as/.well-known/openid-configuration");
+    const res = await request(app).get("/.well-known/openid-configuration");
 
     expect(res.status).toBe(200);
     expect(typeof res.body.issuer).toBe("string");
@@ -74,8 +74,8 @@ describe("app integration", () => {
     beforeAll(async () => {
       const externalPort = await getFreePort();
       const brokerPort = await getFreePort();
-      externalIssuer = `http://127.0.0.1:${externalPort}/as`;
-      brokerIssuer = `http://127.0.0.1:${brokerPort}/as`;
+      externalIssuer = `http://127.0.0.1:${externalPort}`;
+      brokerIssuer = `http://127.0.0.1:${brokerPort}`;
 
       process.env = {
         ...originalEnv,
@@ -177,8 +177,8 @@ describe("app integration", () => {
     it("uses ACCESS_TOKEN_TTL for token response expires_in", async () => {
       const externalPort = await getFreePort();
       const brokerPort = await getFreePort();
-      const externalIssuer = `http://127.0.0.1:${externalPort}/as`;
-      const brokerIssuer = `http://127.0.0.1:${brokerPort}/as`;
+      const externalIssuer = `http://127.0.0.1:${externalPort}`;
+      const brokerIssuer = `http://127.0.0.1:${brokerPort}`;
 
       process.env = {
         ...originalEnv,
@@ -235,18 +235,12 @@ function extractInteractionUid(location: string) {
 }
 
 function normalizeLocation(location: string) {
-  const asPrefixedInteraction = (pathname: string) =>
-    pathname.startsWith("/interaction/") ? `/as${pathname}` : pathname;
-
   if (!location.startsWith("http://") && !location.startsWith("https://")) {
     const path = location.startsWith("/") ? location : `/${location}`;
-    const [pathname, query = ""] = path.split("?");
-    const normalizedPath = asPrefixedInteraction(pathname);
-    return query ? `${normalizedPath}?${query}` : normalizedPath;
+    return path;
   }
   const url = new URL(location);
-  const normalizedPath = asPrefixedInteraction(url.pathname);
-  return `${normalizedPath}${url.search}`;
+  return `${url.pathname}${url.search}`;
 }
 
 async function followRedirectsToOk(
@@ -352,7 +346,7 @@ async function issueAccessToken(
   brokerIssuer: string
 ) {
   const authRes = await agent
-    .get("/as/auth")
+    .get("/auth")
     .query({
       client_id: "test",
       redirect_uri: "http://localhost:9876/callback",
@@ -384,7 +378,7 @@ async function issueAccessToken(
   const externalInteractionUid = extractInteractionUid(externalInteractionPage.location);
 
   const externalLoginRes = await externalAgent
-    .post(`/as/interaction/${externalInteractionUid}/login`)
+    .post(`/interaction/${externalInteractionUid}/login`)
     .type("form")
     .send({ login: "broker-demo-user", password: "broker-demo-pass" })
     .expect(303);
@@ -398,7 +392,7 @@ async function issueAccessToken(
   const externalConsentUid = extractInteractionUid(externalConsentPage.location);
 
   const externalConsentRes = await externalAgent
-    .post(`/as/interaction/${externalConsentUid}/confirm`)
+    .post(`/interaction/${externalConsentUid}/confirm`)
     .type("form")
     .send({})
     .expect((res) => {
@@ -437,7 +431,7 @@ async function issueAccessToken(
   );
 
   const tokenRes = await agent
-    .post("/as/token")
+    .post("/token")
     .auth("test", "test")
     .type("form")
     .send({
@@ -452,7 +446,7 @@ async function issueAccessToken(
   const expiresIn = tokenRes.body.expires_in as number;
 
   const discoveryRes = await agent
-    .get("/as/.well-known/openid-configuration")
+    .get("/.well-known/openid-configuration")
     .expect(200);
 
   const introspectionPath = new URL(
@@ -467,7 +461,7 @@ function normalizeToBrokerCallbackUrl(location: string, brokerIssuer: string) {
   const brokerOrigin = new URL(brokerIssuer).origin;
   if (
     url.origin === brokerOrigin &&
-    url.pathname === "/as/interaction/authBroker/callback"
+    url.pathname === "/interaction/authBroker/callback"
   ) {
     return url.toString();
   }
@@ -490,7 +484,7 @@ async function followRedirectsToBrokerCallback(
     const url = new URL(nextLocation, externalOrigin);
     if (
       url.origin === brokerOrigin &&
-      url.pathname === "/as/interaction/authBroker/callback"
+      url.pathname === "/interaction/authBroker/callback"
     ) {
       return url.toString();
     }

@@ -72,7 +72,7 @@ export default (
     return { consent };
   };
 
-	app.get('/as/interaction/:uid', async (req, res, next) => {
+	app.get('/interaction/:uid', async (req, res, next) => {
       try {
         const interaction = await provider.interactionDetails(req, res);
         const {
@@ -157,7 +157,7 @@ export default (
       }
     });
 
-  app.post('/as/interaction/:uid/confirm', async (req, res, next) => {
+  app.post('/interaction/:uid/confirm', async (req, res, next) => {
       try {
         const interaction = await provider.interactionDetails(req, res);
         if (interaction.prompt.name !== 'consent') {
@@ -170,7 +170,7 @@ export default (
       }
     });
 
-    app.post('/as/interaction/:uid/abort', async (req, res, next) => {
+    app.post('/interaction/:uid/abort', async (req, res, next) => {
       try {
         const result = {
           error: 'access_denied',

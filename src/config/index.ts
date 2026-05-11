@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 dotenv.config();
 
-const serviceUrl = process.env.SERVICE_URL || "http://localhost:6060/as";
+const serviceUrl = process.env.SERVICE_URL || "http://localhost:6060";
 
 const certsDir = path.resolve(process.cwd(), "./certs");
 let trustedRootCertificates: string[] = [];

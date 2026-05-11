@@ -195,8 +195,8 @@
   width: 18px;
   height: 18px;
   background: currentColor;
-  -webkit-mask: url("/as/icons/pid-card.svg") no-repeat center / contain;
-  mask: url("/as/icons/pid-card.svg") no-repeat center / contain;
+  -webkit-mask: url("/icons/pid-card.svg") no-repeat center / contain;
+  mask: url("/icons/pid-card.svg") no-repeat center / contain;
 }
 
 @media (max-width: 520px) {
