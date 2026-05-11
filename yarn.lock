@@ -2692,9 +2692,9 @@ void-elements@^3.1.0:
   resolved "https://registry.yarnpkg.com/void-elements/-/void-elements-3.1.0.tgz#614f7fbf8d801f0bb5f0661f5b2f5785750e4f09"
   integrity sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==
 
-"wallet-common@git+https://github.com/wwWallet/wallet-common.git#daf25260c860f6a8be66e246e848fddcf53479b3":
+"wallet-common@git+https://github.com/wwWallet/wallet-common.git#8cf222eb170009110c926b24a8b8cd0543a6b345":
   version "0.0.1"
-  resolved "git+https://github.com/wwWallet/wallet-common.git#daf25260c860f6a8be66e246e848fddcf53479b3"
+  resolved "git+https://github.com/wwWallet/wallet-common.git#8cf222eb170009110c926b24a8b8cd0543a6b345"
   dependencies:
     "@noble/curves" "^2.2.0"
     "@owf/mdoc" "^0.6.0"
