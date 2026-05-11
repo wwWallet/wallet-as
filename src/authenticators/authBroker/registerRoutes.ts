@@ -101,10 +101,10 @@ export const registerAuthBrokerRoutes = (app: Express.Application, provider: Pro
     }
   };
 
-  app.get("/as/interaction/:uid/authBroker", startAuthBroker);
-  app.post("/as/interaction/:uid/authBroker", startAuthBroker);
+  app.get("/interaction/:uid/authBroker", startAuthBroker);
+  app.post("/interaction/:uid/authBroker", startAuthBroker);
 
-  app.get("/as/interaction/authBroker/callback", async (req, res) => {
+  app.get("/interaction/authBroker/callback", async (req, res) => {
     const state = req.query.state as string | undefined;
     if (!state) {
       return res.status(400).json({
@@ -124,11 +124,11 @@ export const registerAuthBrokerRoutes = (app: Express.Application, provider: Pro
     const callbackUrl = new URL(req.originalUrl, `${req.protocol}://${req.get("host")}`);
     const query = callbackUrl.search;
     return res.redirect(
-      `/as/interaction/${encodeURIComponent(requestState.uid)}/authBroker/callback${query}`
+      `/interaction/${encodeURIComponent(requestState.uid)}/authBroker/callback${query}`
     );
   });
 
-  app.get("/as/interaction/:uid/authBroker/callback", async (req, res) => {
+  app.get("/interaction/:uid/authBroker/callback", async (req, res) => {
     let state: string | undefined;
     try {
       const interaction = await provider.interactionDetails(req, res);
