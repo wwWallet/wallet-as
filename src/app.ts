@@ -18,9 +18,6 @@ export function createApp() {
   // Keep templates alongside source for both ts-node and compiled runs.
   const viewsPath = path.join(__dirname, "../src/views");
 
-  // Serve static files
-  app.use(express.static(path.join(process.cwd(), "public")));
-
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.set("views", viewsPath);
@@ -30,7 +27,6 @@ export function createApp() {
   app.locals.demoUsername = config.demoUsername;
   app.locals.demoPassword = config.demoPassword;
 
-  app.get("/", (_req, res) => res.render("index"));
   const oidClients: oidc.ClientMetadata[] = [
     {
       client_id: "test",
@@ -78,7 +74,7 @@ export function createApp() {
           }
           throw new Error("No login interaction URL could be resolved from configured authenticator");
         }
-        return `/interaction/${interaction.uid}`;
+        return `${config.basePath}/interaction/${interaction.uid}`;
       }
     },
     features: {
@@ -110,9 +106,13 @@ export function createApp() {
     ? new DemoAccountSource()
     : new FileAccountSource();
 
-  authenticator.registerRoutes(app, provider, accountSource);
-  interactions(app, provider, accountSource, authenticator);
-  app.use(provider.callback());
+  const routesRoot = express.Router();
+  routesRoot.use(express.static(path.join(process.cwd(), "public")));
+  routesRoot.get("/", (_req, res) => res.render("index"));
+  authenticator.registerRoutes(routesRoot, provider, accountSource);
+  interactions(routesRoot, provider, accountSource, authenticator);
+  routesRoot.use(provider.callback());
+  app.use(config.basePath || "/", routesRoot);
 
   return { app, provider };
 }

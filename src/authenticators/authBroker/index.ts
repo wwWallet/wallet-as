@@ -15,7 +15,7 @@ const createAuthenticator = (): Authenticator => {
       if (interaction.prompt.name !== "login") {
         return null;
       }
-      return `/interaction/${interaction.uid}/authBroker`;
+      return `${config.basePath}/interaction/${interaction.uid}/authBroker`;
     },
     shouldAutoApproveConsent: (interaction) => interaction.prompt.name === "consent",
     registerRoutes: registerAuthBrokerRoutes,

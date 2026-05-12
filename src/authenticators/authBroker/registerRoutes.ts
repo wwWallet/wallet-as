@@ -71,7 +71,7 @@ const logoutAndFinishUrl = (brokerConfiguration: openidClient.Configuration, fin
   }
 }
 
-export const registerAuthBrokerRoutes = (app: Express.Application, provider: Provider, _accountSource: IAccountSource) => {
+export const registerAuthBrokerRoutes = (app: Express.Router, provider: Provider, _accountSource: IAccountSource) => {
   const startAuthBroker = async (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
     try {
       const interaction = await provider.interactionDetails(req, res);
@@ -124,7 +124,7 @@ export const registerAuthBrokerRoutes = (app: Express.Application, provider: Pro
     const callbackUrl = new URL(req.originalUrl, `${req.protocol}://${req.get("host")}`);
     const query = callbackUrl.search;
     return res.redirect(
-      `/interaction/${encodeURIComponent(requestState.uid)}/authBroker/callback${query}`
+      `${config.basePath}/interaction/${encodeURIComponent(requestState.uid)}/authBroker/callback${query}`
     );
   });
 
