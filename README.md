@@ -23,7 +23,7 @@ Environment variables and how they are used:
 
 | Variable | Purpose | Default / Notes |
 | --- | --- | --- |
-| `SERVICE_URL` | Base URL for the AS | `http://localhost:6060` if unset. |
+| `SERVICE_URL` | Full external URL for the AS (scheme/host and optional path prefix). | `http://localhost:6060` if unset. Example: If deployed under `/as`, set it to `https://issuer.example.com/as`. |
 | `WALLET_URL` | Redirect URI registered for the wallet client. | `http://localhost:3000` if unset. |
 | `INTROSPECTION_CLIENT` | Client ID allowed to introspect tokens. | If set with `INTROSPECTION_CLIENT_SECRET`, an extra client is registered. |
 | `INTROSPECTION_CLIENT_SECRET` | Secret for the introspection client. | Required alongside `INTROSPECTION_CLIENT`. |
