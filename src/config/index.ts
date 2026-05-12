@@ -53,7 +53,7 @@ export default {
   trustedRootCertificates: trustedRootCertificates,
   trustedIssuers: process.env.TRUSTED_ISSUERS
 		? process.env.TRUSTED_ISSUERS.split(',')
-		: ["http://localhost:8003"],
+		: ["http://localhost:8003/openid"],
   authBrokerProviderUrl: authBrokerProviderUrl,
   authBrokerClientId: authBrokerClientId,
   authBrokerClientSecret: authBrokerClientSecret,
