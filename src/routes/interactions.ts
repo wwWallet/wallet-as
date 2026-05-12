@@ -10,7 +10,7 @@ import { saveIssuerStateForGrant } from "../util/issuerStateStore";
 const vctEngine = createVctProviderFromEnv();
 
 export default (
-  app: Express.Application,
+  app: Express.Router,
   provider: Provider,
   _accountSource: IAccountSource,
   authenticator: Authenticator

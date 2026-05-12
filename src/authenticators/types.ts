@@ -9,7 +9,7 @@ export interface Authenticator {
   getLoginInteractionUrl: (interaction: InteractionDetails) => string | null;
   shouldAutoApproveConsent?: (interaction: InteractionDetails) => boolean;
   registerRoutes: (
-    app: Express.Application,
+    app: Express.Router,
     provider: Provider,
     accountSource: IAccountSource
   ) => void;

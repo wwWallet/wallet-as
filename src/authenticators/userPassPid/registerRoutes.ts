@@ -41,7 +41,7 @@ const extractClaims = (claims: Record<string, Array<{ key: string; value: string
 };
 
 export const registerUserPassPidRoutes = (
-  app: Express.Application,
+  app: Express.Router,
   provider: Provider,
   accountSource: IAccountSource
 ) => {
@@ -109,7 +109,7 @@ export const registerUserPassPidRoutes = (
 
   const openID4VPService = new OpenID4VPService({
     baseUrl: config.serviceUrl,
-    redirectUri: config.serviceUrl + "/verification/direct_post",
+    redirectUri: `${config.serviceUrl}/verification/direct_post`,
   });
 
   app.post("/interaction/:uid/pid", async (req, res, next) => {

@@ -23,7 +23,7 @@ Environment variables and how they are used:
 
 | Variable | Purpose | Default / Notes |
 | --- | --- | --- |
-| `SERVICE_URL` | Base URL for the AS | `http://localhost:6060` if unset. |
+| `SERVICE_URL` | Full external URL for the AS (scheme/host and optional path prefix). | `http://localhost:6060` if unset. Example: If deployed under `/as`, set it to `https://issuer.example.com/as`. |
 | `WALLET_URL` | Redirect URI registered for the wallet client. | `http://localhost:3000` if unset. |
 | `INTROSPECTION_CLIENT` | Client ID allowed to introspect tokens. | If set with `INTROSPECTION_CLIENT_SECRET`, an extra client is registered. |
 | `INTROSPECTION_CLIENT_SECRET` | Secret for the introspection client. | Required alongside `INTROSPECTION_CLIENT`. |
@@ -31,6 +31,7 @@ Environment variables and how they are used:
 | `METADATA_URL` | Credential Issuer metadata URL. | Used during consent to fetch display metadata for requested scopes. |
 | `ACCESS_TOKEN_TTL` | Access token TTL (seconds). | Default: `30`|
 | `REFRESH_TOKEN_TTL` | Refresh token TTL (seconds). | Default: `2592000` |
+| `BASE_PATH` | Optional base path for public, AS/OIDC, and related Express endpoints. | Empty by default. Supports values like `as` or `/as`; normalized to `/as`. |
 | `AUTHENTICATOR` | Selected authenticator to load (single value). | Supported values: `user-pass-pid` or `auth-broker`. Defaults to `user-pass-pid` if unset. |
 | `USER_PASS_PID_DEMO_USERNAME` | Demo username for the `user-pass-pid` login screen and demo account. | Used only when `AUTHENTICATOR=user-pass-pid`. |
 | `USER_PASS_PID_DEMO_PASSWORD` | Demo password shown in `user-pass-pid` login form. | Used only for prefill; authentication does not check password. |
@@ -38,7 +39,7 @@ Environment variables and how they are used:
 | `AUTH_BROKER_CLIENT_ID` | OIDC client ID for the `auth-broker` authenticator. | Required when `auth-broker` is enabled. |
 | `AUTH_BROKER_CLIENT_SECRET` | OIDC client secret for the `auth-broker` authenticator. | Optional for public clients. |
 | `AUTH_BROKER_SCOPE` | Space-separated scopes sent to external IdP authorize endpoint by `auth-broker`. | Default: `openid profile email`. |
-| `AUTH_BROKER_REDIRECT_URI` | Redirect URI handled by wallet-as auth-broker callback route. | Default: `http://localhost:6060/interaction/authBroker/callback`. |
+| `AUTH_BROKER_REDIRECT_URI` | Redirect URI handled by wallet-as auth-broker callback route. | Default: `SERVICE_URL + /interaction/authBroker/callback`. |
 | `AUTH_BROKER_SKIP_LOGOUT` | Skip external IdP logout even if IdP supports it in metadata in `auth-broker` callback flow. | Optional; set to `true` when logout should be skipped. |
 
 ## Authenticators
