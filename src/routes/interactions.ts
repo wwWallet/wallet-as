@@ -10,7 +10,7 @@ import { prependToPath } from "wallet-common";
 const vctEngine = createVctProviderFromEnv();
 
 export default (
-  app: Express.Application,
+  app: Express.Router,
   provider: Provider,
   _accountSource: IAccountSource,
   authenticator: Authenticator

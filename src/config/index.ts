@@ -4,6 +4,10 @@ import path from "node:path";
 dotenv.config();
 
 const serviceUrl = process.env.SERVICE_URL || "http://localhost:6060";
+const rawBasePath = process.env.BASE_PATH?.trim() || "";
+const basePath = rawBasePath
+  ? `/${rawBasePath.replace(/^\/+|\/+$/g, "")}`
+  : "";
 
 const certsDir = path.resolve(process.cwd(), "./certs");
 let trustedRootCertificates: string[] = [];
@@ -35,6 +39,7 @@ const authBrokerConfigured = Boolean(authBrokerProviderUrl && authBrokerClientId
 
 export default {
   serviceUrl: serviceUrl,
+  basePath: basePath,
   walletUrl: process.env.WALLET_URL || "http://localhost:3000",
   introspectionClient: process.env.INTROSPECTION_CLIENT || null,
   introspectionClientSecret: process.env.INTROSPECTION_CLIENT_SECRET || null,
