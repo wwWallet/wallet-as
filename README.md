@@ -1,5 +1,7 @@
 # wwWallet Authorization Server
-wwWallet AS is a standalone OIDC/OAuth2 authorization server, typically combined with https://github.com/wwWallet/wallet-issuer for digital credential issuing purposes.
+wwWallet AS is a standalone OIDC/OAuth2 authorization server built around [panva/node-oidc-provider](https://github.com/panva/node-oidc-provider), typically combined with [wwWallet/wallet-issuer](https://github.com/wwWallet/wallet-issuer) for digital credential issuing purposes.
+
+The Authorization Broker flow uses [panva/openid-client](https://github.com/panva/openid-client) as an OIDC client.
 
 > [!NOTE]
 > To quickly setup the **wwWallet** ecosystem see https://github.com/wwWallet/wwwallet
