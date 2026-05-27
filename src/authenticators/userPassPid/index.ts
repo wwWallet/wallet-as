@@ -1,5 +1,6 @@
 import { Authenticator, AuthenticatorFactory } from "../types";
 import { registerUserPassPidRoutes } from "./registerRoutes";
+import config from "../../config";
 
 const createAuthenticator = (): Authenticator => ({
   id: "user-pass-pid",
@@ -7,7 +8,7 @@ const createAuthenticator = (): Authenticator => ({
     if (interaction.prompt.name !== "login") {
       return null;
     }
-    return `/as/interaction/${interaction.uid}`;
+    return `${config.basePath}/interaction/${interaction.uid}`;
   },
   registerRoutes: registerUserPassPidRoutes,
 });

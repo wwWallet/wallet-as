@@ -1,19 +1,19 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import request from "supertest";
-import { createApp } from "../src/app";
+import { createApp } from "../../src/app";
 
 describe("app integration", () => {
   const { app } = createApp();
 
   it("serves the home page", async () => {
-    const res = await request(app).get("/as/");
+    const res = await request(app).get("/");
 
     expect(res.status).toBe(200);
     expect(res.text).toContain("Wallet Authorization Server");
   });
 
   it("serves OIDC discovery metadata", async () => {
-    const res = await request(app).get("/as/.well-known/openid-configuration");
+    const res = await request(app).get("/.well-known/openid-configuration");
 
     expect(res.status).toBe(200);
     expect(typeof res.body.issuer).toBe("string");
@@ -38,7 +38,7 @@ describe("app integration", () => {
       };
 
       vi.resetModules();
-      const { createApp: createIntrospectionApp } = await import("../src/app");
+      const { createApp: createIntrospectionApp } = await import("../../src/app");
       const { app: introspectionApp } = createIntrospectionApp();
       agent = request.agent(introspectionApp);
 
@@ -83,7 +83,7 @@ describe("app integration", () => {
 
     it("accepts issuer_state in pushed authorization requests", async () => {
       const discoveryRes = await agent
-        .get("/as/.well-known/openid-configuration")
+        .get("/.well-known/openid-configuration")
         .expect(200);
       const pushedAuthPath = new URL(
         discoveryRes.body.pushed_authorization_request_endpoint as string
@@ -141,7 +141,7 @@ describe("app integration", () => {
       };
 
       vi.resetModules();
-      const { createApp: createTtlApp } = await import("../src/app");
+      const { createApp: createTtlApp } = await import("../../src/app");
       const { app: ttlApp } = createTtlApp();
       const agent = request.agent(ttlApp);
 
@@ -165,7 +165,7 @@ describe("app integration", () => {
       };
 
       vi.resetModules();
-      const { createApp: createGrantWindowApp } = await import("../src/app");
+      const { createApp: createGrantWindowApp } = await import("../../src/app");
       const { app: grantWindowApp } = createGrantWindowApp();
       const agent = request.agent(grantWindowApp);
 
@@ -173,7 +173,7 @@ describe("app integration", () => {
       await new Promise((resolve) => setTimeout(resolve, 1200));
 
       const refreshedTokenRes = await agent
-        .post("/as/token")
+        .post("/token")
         .auth("test", "test")
         .type("form")
         .send({
@@ -267,7 +267,7 @@ async function issueAccessToken(
   authQuery: Record<string, string> = {}
 ) {
   const authRes = await agent
-    .get("/as/auth")
+    .get("/auth")
     .query({
       client_id: "test",
       redirect_uri: "http://localhost:9876/callback",
@@ -285,7 +285,7 @@ async function issueAccessToken(
   await followRedirectsToOk(agent, authLocation as string);
 
   const loginRes = await agent
-    .post(`/as/interaction/${interactionUid}/login`)
+    .post(`/interaction/${interactionUid}/login`)
     .type("form")
     .send({ login: "test", password: "test" })
     .expect(303);
@@ -299,7 +299,7 @@ async function issueAccessToken(
   const consentUid = extractInteractionUid(consentPage.location);
 
   const consentRes = await agent
-    .post(`/as/interaction/${consentUid}/confirm`)
+    .post(`/interaction/${consentUid}/confirm`)
     .type("form")
     .send({})
     .expect((res) => {
@@ -317,7 +317,7 @@ async function issueAccessToken(
   );
 
   const tokenRes = await agent
-    .post("/as/token")
+    .post("/token")
     .auth("test", "test")
     .type("form")
     .send({
@@ -334,7 +334,7 @@ async function issueAccessToken(
   const expiresIn = tokenRes.body.expires_in as number;
 
   const discoveryRes = await agent
-    .get("/as/.well-known/openid-configuration")
+    .get("/.well-known/openid-configuration")
     .expect(200);
 
   const introspectionPath = new URL(

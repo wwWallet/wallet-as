@@ -41,11 +41,11 @@ const extractClaims = (claims: Record<string, Array<{ key: string; value: string
 };
 
 export const registerUserPassPidRoutes = (
-  app: Express.Application,
+  app: Express.Router,
   provider: Provider,
   accountSource: IAccountSource
 ) => {
-  app.get("/as/interaction/:uid", async (req, res, next) => {
+  app.get("/interaction/:uid", async (req, res, next) => {
     try {
       const interaction = await provider.interactionDetails(req, res);
       if (interaction.prompt.name !== "login") {
@@ -69,7 +69,7 @@ export const registerUserPassPidRoutes = (
     }
   });
 
-  app.post("/as/interaction/:uid/login", async (req, res, next) => {
+  app.post("/interaction/:uid/login", async (req, res, next) => {
     try {
       const interaction = await provider.interactionDetails(req, res);
       if (interaction.prompt.name !== "login") {
@@ -109,10 +109,10 @@ export const registerUserPassPidRoutes = (
 
   const openID4VPService = new OpenID4VPService({
     baseUrl: config.serviceUrl,
-    redirectUri: config.serviceUrl + "/verification/direct_post",
+    redirectUri: `${config.serviceUrl}/verification/direct_post`,
   });
 
-  app.post("/as/interaction/:uid/pid", async (req, res, next) => {
+  app.post("/interaction/:uid/pid", async (req, res, next) => {
     try {
       const interaction = await provider.interactionDetails(req, res);
       if (interaction.prompt.name !== "login") {
@@ -145,11 +145,11 @@ export const registerUserPassPidRoutes = (
     }
   });
 
-  app.get("/as/interaction/:uid/pid/callback", async (_req, res) => {
+  app.get("/interaction/:uid/pid/callback", async (_req, res) => {
     res.render("pid-callback");
   });
 
-  app.post("/as/interaction/:uid/pid/callback", async (req, res) => {
+  app.post("/interaction/:uid/pid/callback", async (req, res) => {
     try {
       const responseCode = req.body.response_code as string | undefined;
       if (!responseCode) {
@@ -227,11 +227,11 @@ export const registerUserPassPidRoutes = (
     }
   });
 
-  app.get("/as/verification/request-object", async (req, res) => {
+  app.get("/verification/request-object", async (req, res) => {
     return openID4VPService.getSignedRequestObject({ req, res });
   });
 
-  app.post("/as/verification/direct_post", async (req, res) => {
+  app.post("/verification/direct_post", async (req, res) => {
     return openID4VPService.responseHandler({ req, res });
   });
 };

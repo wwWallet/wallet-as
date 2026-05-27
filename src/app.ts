@@ -19,9 +19,6 @@ export function createApp() {
   // Keep templates alongside source for both ts-node and compiled runs.
   const viewsPath = path.join(__dirname, "../src/views");
 
-  // Serve static files
-  app.use("/as", express.static(path.join(process.cwd(), "public")));
-
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.set("views", viewsPath);
@@ -31,7 +28,6 @@ export function createApp() {
   app.locals.demoUsername = config.demoUsername;
   app.locals.demoPassword = config.demoPassword;
 
-  app.get("/as", (_req, res) => res.render("index"));
   const oidClients: oidc.ClientMetadata[] = [
     {
       client_id: "test",
@@ -82,7 +78,7 @@ export function createApp() {
           }
           throw new Error("No login interaction URL could be resolved from configured authenticator");
         }
-        return `/as/interaction/${interaction.uid}`;
+        return `${config.basePath}/interaction/${interaction.uid}`;
       }
     },
     features: {
@@ -96,6 +92,44 @@ export function createApp() {
       },
       pushedAuthorizationRequests: {
         enabled: true,
+      },
+      resourceIndicators: {
+        enabled: true,
+        async getResourceServerInfo(ctx, resourceIndicator, client) {     
+          
+          if (!resourceIndicator || !config.trustedIssuers.includes(resourceIndicator)) {
+            throw new oidc.errors.InvalidTarget();
+          }
+
+          const scope = ctx.oidc.params?.scope as string | undefined;
+          if (scope) {
+            const parsedScopes = scope.split(' ').filter(Boolean);
+            for (const parsedScope of parsedScopes) {
+              if (!config.scopes.includes(parsedScope)) {
+                throw new oidc.errors.InvalidScope('Scope is not supported by resource server', parsedScope);
+              }
+            }
+          }
+
+          return {
+            scope: scope,
+            audience: resourceIndicator,
+          } as unknown as oidc.ResourceServer;
+        },
+        async defaultResource(_ctx, _client, oneOf) {
+          if (oneOf && oneOf.length > 0) {
+            return oneOf[0];
+          }
+
+          if (config.trustedIssuers.length > 0) {
+            return config.trustedIssuers[0];
+          }
+
+          return [];
+        },
+        async useGrantedResource(_ctx, _model) {
+          return true;
+        },
       },
     },
     issueRefreshToken: issueRefreshToken,
@@ -117,9 +151,13 @@ export function createApp() {
     ? new DemoAccountSource()
     : new FileAccountSource();
 
-  authenticator.registerRoutes(app, provider, accountSource);
-  interactions(app, provider, accountSource, authenticator);
-  app.use("/as", provider.callback());
+  const routesRoot = express.Router();
+  routesRoot.use(express.static(path.join(process.cwd(), "public")));
+  routesRoot.get("/", (_req, res) => res.render("index"));
+  authenticator.registerRoutes(routesRoot, provider, accountSource);
+  interactions(routesRoot, provider, accountSource, authenticator);
+  routesRoot.use(provider.callback());
+  app.use(config.basePath || "/", routesRoot);
 
   return { app, provider };
 }

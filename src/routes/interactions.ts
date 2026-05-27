@@ -1,16 +1,16 @@
 import Express from "express";
 import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
-import { fetchIssuerMetadata } from '../util/fetchIssuerMetadata';
 import { createVctProviderFromEnv } from "../util/vctResolution";
 import { getConsentPreviewDataUri } from "../util/consentPreview";
 import { Authenticator } from "../authenticators";
 import { saveIssuerStateForGrant } from "../util/issuerStateStore";
+import { prependToPath } from "wallet-common";
 
 const vctEngine = createVctProviderFromEnv();
 
 export default (
-  app: Express.Application,
+  app: Express.Router,
   provider: Provider,
   _accountSource: IAccountSource,
   authenticator: Authenticator
@@ -72,7 +72,7 @@ export default (
     return { consent };
   };
 
-	app.get('/as/interaction/:uid', async (req, res, next) => {
+	app.get('/interaction/:uid', async (req, res, next) => {
       try {
         const interaction = await provider.interactionDetails(req, res);
         const {
@@ -84,10 +84,21 @@ export default (
         let issuerMetadata: any = null;
         let credentialConfigs: Array<{scope: string, vct: string | null, display: any}> = [];
         if (prompt.name === 'consent') {
-          const metadataUrl = process.env.METADATA_URL;
-          if (metadataUrl) {
+          const issuerIdentifier = params.resource as string | undefined;
+          const issuerMetadataUrl = prependToPath(
+            issuerIdentifier ?? '',
+            '.well-known/openid-credential-issuer'
+          );
+          if (issuerMetadataUrl) {
             try {
-              issuerMetadata = await fetchIssuerMetadata(metadataUrl);
+              const issuerMetadataResponse = await fetch(issuerMetadataUrl, {
+                headers: {
+                  'Accept': 'application/json',
+                },
+              });
+              if (issuerMetadataResponse.ok) {
+                issuerMetadata = await issuerMetadataResponse.json();
+              }
               if (issuerMetadata) {
                 credentialConfigs = String(params.scope ?? "")
                 .split(" ")
@@ -146,7 +157,7 @@ export default (
       }
     });
 
-  app.post('/as/interaction/:uid/confirm', async (req, res, next) => {
+  app.post('/interaction/:uid/confirm', async (req, res, next) => {
       try {
         const interaction = await provider.interactionDetails(req, res);
         if (interaction.prompt.name !== 'consent') {
@@ -159,7 +170,7 @@ export default (
       }
     });
 
-    app.post('/as/interaction/:uid/abort', async (req, res, next) => {
+    app.post('/interaction/:uid/abort', async (req, res, next) => {
       try {
         const result = {
           error: 'access_denied',
