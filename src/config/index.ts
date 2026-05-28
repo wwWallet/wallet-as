@@ -46,7 +46,9 @@ export default {
   scopes: process.env.SCOPES ? process.env.SCOPES.split(',') : ["openid"],
   ttl: {
     accessToken: Number(process.env.ACCESS_TOKEN_TTL) || 30,
-    refreshToken: Number(process.env.REFRESH_TOKEN_TTL) || 2592000
+    refreshToken: Number(process.env.REFRESH_TOKEN_TTL) || 2592000,
+    grantReuseWindowSeconds:
+      Number(process.env.GRANT_REUSE_WINDOW_SECONDS) || 30,
   },
   demoUsername: process.env.USER_PASS_PID_DEMO_USERNAME || null,
   demoPassword: process.env.USER_PASS_PID_DEMO_PASSWORD || null,
