@@ -64,4 +64,6 @@ export default {
   authBrokerSkipLogout: authBrokerSkipLogout,
   authBrokerConfigured: authBrokerConfigured,
   authenticator: authenticator,
+  attestationBasedClientAuthentication: process.env.ATTESTATION_BASED_CLIENT_AUTHENTICATION === "true" || false,
+  abcaPublicKey: process.env.ABCA_PUBLIC_KEY_B64 ? Buffer.from(process.env.ABCA_PUBLIC_KEY_B64, 'base64').toString('utf8').trim() : undefined
 }
