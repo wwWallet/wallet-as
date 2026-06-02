@@ -28,7 +28,6 @@ coverage/
 .env
 .env.*
 !.env.template
-src/config/trustedClientAttesters.ts
 
 # Editor directories and OS files
 .idea/

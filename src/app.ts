@@ -11,7 +11,6 @@ import { issueRefreshToken } from "./policies/issueRefreshToken";
 import { loadAuthenticator } from "./authenticators";
 import { getIssuerStateForGrant } from "./util/issuerStateStore";
 import { randomBytes } from 'crypto';
-import { trustedClientAttesters } from "./config/trustedClientAttesters";
 
 export function createApp() {
   const app = express();
@@ -149,10 +148,10 @@ export function createApp() {
         challengeSecret: randomBytes(32),
         ack: 'draft-06',
         async getAttestationSignaturePublicKey(_ctx: any, iss: any, _header: any, _client: any) {
-          if (!Object.keys(trustedClientAttesters).includes(iss)) {
+          if (!Object.keys(config.trustedClientAttesters).includes(iss)) {
             throw new Error('unknown attester');
           }
-          return trustedClientAttesters[iss];
+          return config.trustedClientAttesters[iss];
         },
 
         async assertAttestationJwtAndPop(

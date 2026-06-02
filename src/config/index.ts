@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import fs from "node:fs";
 import path from "node:path";
-import { trustedClientAttesters } from './trustedClientAttesters';
+import { exportJWK, importSPKI, JWK } from "jose";
 dotenv.config();
 
 const serviceUrl = process.env.SERVICE_URL || "http://localhost:6060";
@@ -21,8 +21,23 @@ try {
       .filter((pem) => pem.trim().length > 0);
   }
 } catch (err) {
-  console.warn("Failed to load trusted root certificates:", err);
+  console.warn(`Failed to load trusted root certificates: ${err}`);
   trustedRootCertificates = [];
+}
+
+let trustedClientAttesters: Record<string, JWK> = {};
+try {
+  trustedClientAttesters = Object.fromEntries(
+    Object.entries(
+      JSON.parse(process.env.TRUSTED_CLIENT_ATTESTERS ?? '{}')
+    ).map(([iss, encoded]) => [
+      iss,
+      JSON.parse(Buffer.from(encoded as string, 'base64').toString('utf8'))
+    ])
+  );
+} catch (err) {
+  console.warn(`Failed to load trusted client attesters: ${err}`);
+  trustedClientAttesters = {};
 }
 
 const authBrokerProviderUrl =
