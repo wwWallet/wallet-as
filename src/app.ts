@@ -11,7 +11,7 @@ import { issueRefreshToken } from "./policies/issueRefreshToken";
 import { loadAuthenticator } from "./authenticators";
 import { getIssuerStateForGrant } from "./util/issuerStateStore";
 import { randomBytes } from 'crypto';
-import { importSPKI } from "jose";
+import { trustedClientAttesters } from "./config/trustedClientAttesters";
 
 export function createApp() {
   const app = express();
@@ -34,24 +34,27 @@ export function createApp() {
       client_id: "test",
       client_secret: "test",
       redirect_uris: ["http://localhost:9876/callback"],
+      grant_types: ["authorization_code", "refresh_token"],
       logo_uri:
         "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
+      token_endpoint_auth_method: config.attestationBasedClientAuthentication
+        ? 'attest_jwt_client_auth' as any
+        : 'client_secret_basic',
     },
     {
       client_id: "test2",
       client_secret: "test2",
       redirect_uris: ["http://localhost:9876/callback"],
+      grant_types: ["authorization_code", "refresh_token"],
       logo_uri:
         "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-    }
-  ];
-
-  if (config.attestationBasedClientAuthentication) {
-    console.log("Adding client for attestation-based client authentication (ABCA)");
-    oidClients.push({
+      token_endpoint_auth_method: config.attestationBasedClientAuthentication
+        ? 'attest_jwt_client_auth' as any
+        : 'client_secret_basic',
+    },
+    {
       client_id: "1233",
-      token_endpoint_auth_method:
-        "attest_jwt_client_auth" as any,
+      client_secret: "1233",
       grant_types: [
         "authorization_code",
         "refresh_token",
@@ -59,17 +62,11 @@ export function createApp() {
       redirect_uris: [config.walletUrl],
       logo_uri:
         "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-      require_pkce: true,
-    });
-  } else {
-    oidClients.push({
-      client_id: "1233",
-      token_endpoint_auth_method: "none",
-      redirect_uris: [config.walletUrl],
-      logo_uri:
-        "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-    })
-  }
+      token_endpoint_auth_method: config.attestationBasedClientAuthentication
+        ? 'attest_jwt_client_auth' as any
+        : 'client_secret_basic',
+    }
+  ];
 
   if (config.introspectionClient && config.introspectionClientSecret) {
     console.log("Adding introspection client");
@@ -152,11 +149,10 @@ export function createApp() {
         challengeSecret: randomBytes(32),
         ack: 'draft-06',
         async getAttestationSignaturePublicKey(_ctx: any, iss: any, _header: any, _client: any) {
-          if (config.trustedIssuers.includes(iss)) {
-            return await importSPKI(config.abcaPublicKey ?? "", "ES256");
+          if (!Object.keys(trustedClientAttesters).includes(iss)) {
+            throw new Error('unknown attester');
           }
-
-          throw new Error('unknown attester');
+          return trustedClientAttesters[iss];
         },
 
         async assertAttestationJwtAndPop(
@@ -164,12 +160,9 @@ export function createApp() {
           _attestation: any,
           pop: any,
         ) {
-          // Verify PoP cnf / binding
           if (!pop.payload.cnf) {
             throw new Error('missing cnf');
           }
-
-          // TODO: Verify nonce / timestamp / device integrity etc.
         },
       },
     },
@@ -183,8 +176,8 @@ export function createApp() {
       'client_secret_jwt',
       'client_secret_post',
       'private_key_jwt',
-      'none',
-      'attest_jwt_client_auth' as any
+      'attest_jwt_client_auth' as any,  // Attestation-based client authentication (ABCA) method is not supported by latest @types/oidc-provider yet.
+      'none'
     ],
     discovery: {
       client_attestation_signing_alg_values_supported: ['ES256'],

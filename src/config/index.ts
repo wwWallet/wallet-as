@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import fs from "node:fs";
 import path from "node:path";
+import { trustedClientAttesters } from './trustedClientAttesters';
 dotenv.config();
 
 const serviceUrl = process.env.SERVICE_URL || "http://localhost:6060";
@@ -65,5 +66,5 @@ export default {
   authBrokerConfigured: authBrokerConfigured,
   authenticator: authenticator,
   attestationBasedClientAuthentication: process.env.ATTESTATION_BASED_CLIENT_AUTHENTICATION === "true" || false,
-  abcaPublicKey: process.env.ABCA_PUBLIC_KEY_B64 ? Buffer.from(process.env.ABCA_PUBLIC_KEY_B64, 'base64').toString('utf8').trim() : undefined
+  trustedClientAttesters: trustedClientAttesters ?? {},
 }
