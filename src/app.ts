@@ -178,15 +178,18 @@ export function createApp() {
       AccessToken: config.ttl.accessToken,
       RefreshToken: config.ttl.refreshToken,
     },
-
-      clientAuthMethods: [
-        'client_secret_basic',
-        'client_secret_jwt',
-        'client_secret_post',
-        'private_key_jwt',
-        'none',
-        'attest_jwt_client_auth' as any
-      ],
+    clientAuthMethods: [
+      'client_secret_basic',
+      'client_secret_jwt',
+      'client_secret_post',
+      'private_key_jwt',
+      'none',
+      'attest_jwt_client_auth' as any
+    ],
+    discovery: {
+      client_attestation_signing_alg_values_supported: ['ES256'],
+      client_attestation_pop_signing_alg_values_supported: ['ES256']
+    },
     extraParams: ['issuer_state'],
     async extraTokenClaims(_ctx, token) {
       const issuerState = await getIssuerStateForGrant((token as any).grantId);
