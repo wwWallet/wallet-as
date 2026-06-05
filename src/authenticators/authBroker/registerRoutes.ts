@@ -12,7 +12,7 @@ type PendingBrokerRequest = {
   createdAt: number;
 };
 
-const requestStore = new DataStore<PendingBrokerRequest>("brokerRequestStore", dataStoreClient);
+const requestStore = new DataStore<PendingBrokerRequest>(dataStoreClient, "brokerRequestStore");
 let brokerConfigurationPromise: Promise<openidClient.Configuration> | null = null;
 
 const getBrokerConfiguration = async () => {

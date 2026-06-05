@@ -11,7 +11,6 @@ export class GenericDataStore<TKey, TValue> implements GenericStore<TKey, TValue
 		private readonly serializeValue: (value: TValue) => string = JSON.stringify,
 		private readonly deserializeValue: (value: string) => TValue = JSON.parse,
 	) {
-		this.client = new Valkey();
 		this.indexKey = `${prefix}:__keys`;
 	}
 
@@ -32,8 +31,7 @@ export class GenericDataStore<TKey, TValue> implements GenericStore<TKey, TValue
 	async set(key: TKey, value: TValue, ttlMs?: number): Promise<void> {
 		const redisKey = this.buildKey(key);
 		const serializedValue = this.serializeValue(value);
-
-		if(ttlMs) {
+		if(ttlMs !== undefined) {
 			await this.client
 				.multi()
 				.set(redisKey, serializedValue, "PX", ttlMs)

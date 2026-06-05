@@ -3,8 +3,8 @@ import { GenericStore } from "wallet-common";
 
 export class DataStore<TValue> implements GenericStore<string, TValue> {
 	constructor(
+		private readonly client: Valkey,
 		private readonly prefix: string,
-		private readonly client: Valkey = new Valkey(),
 		private readonly serializeValue: (value: TValue) => string = JSON.stringify,
 		private readonly deserializeValue: (value: string) => TValue = JSON.parse,
 	) {
@@ -25,7 +25,7 @@ export class DataStore<TValue> implements GenericStore<string, TValue> {
 		const builtKey = this.buildKey(key);
 		const serializedValue = this.serializeValue(value);
 
-		if (ttlMs) {
+		if(ttlMs !== undefined) {
 			await this.client.set(
 				builtKey,
 				serializedValue,

@@ -22,7 +22,8 @@ export type OpenidForPresentationsConfiguration = {
 };
 
 export class OpenID4VPService {
-  private static rpStateKV: DataStore<RPState | string> = new DataStore<RPState | string>("rpStateKV", dataStoreClient);
+  private static rpStateKV = 
+    new DataStore<RPState | string>(dataStoreClient, "rpStateKV");
   public openid4vpClient: OpenID4VPClientAPI;
 
   private privateKeyPem: string = privateKeyPem;

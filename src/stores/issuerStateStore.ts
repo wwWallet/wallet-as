@@ -1,7 +1,7 @@
 import { DataStore } from "./DataStore";
 import { dataStoreClient } from "../app";
 
-const issuerStateByGrantId = new DataStore<string>("issuerStateByGrantId", dataStoreClient);
+const issuerStateByGrantId = new DataStore<string>(dataStoreClient, "issuerStateByGrantId");
 
 export const saveIssuerStateForGrant = async (
   grantId: string,
