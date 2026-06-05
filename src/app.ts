@@ -50,6 +50,7 @@ export function createApp() {
       token_endpoint_auth_method: "none",
       redirect_uris: [config.walletUrl],
       post_logout_redirect_uris: [config.walletUrl],
+      grant_types: ["authorization_code", "refresh_token"],
       logo_uri:
         "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
     },
