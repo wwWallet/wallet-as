@@ -9,6 +9,9 @@ const basePath = rawBasePath
   ? `/${rawBasePath.replace(/^\/+|\/+$/g, "")}`
   : "";
 
+const dataStoreHost = process.env.DATA_STORE_HOST || "localhost";
+const dataStorePort = Number(process.env.DATA_STORE_PORT) || 6379;
+
 const certsDir = path.resolve(process.cwd(), "./certs");
 let trustedRootCertificates: string[] = [];
 try {
@@ -36,11 +39,14 @@ const authBrokerSkipLogout =
   process.env.AUTH_BROKER_SKIP_LOGOUT === "true";
 const authenticator = process.env.AUTHENTICATOR?.trim() || "user-pass-pid";
 const authBrokerConfigured = Boolean(authBrokerProviderUrl && authBrokerClientId);
+const authBrokerRequestStoreTtlMs = Number(process.env.AUTH_BROKER_REQUEST_STORE_TTL_MS || 10 * 60 * 1000);
 
 export default {
   serviceUrl: serviceUrl,
   basePath: basePath,
   walletUrl: process.env.WALLET_URL || "http://localhost:3000",
+  dataStoreHost: dataStoreHost,
+  dataStorePort: dataStorePort,
   introspectionClient: process.env.INTROSPECTION_CLIENT || null,
   introspectionClientSecret: process.env.INTROSPECTION_CLIENT_SECRET || null,
   scopes: process.env.SCOPES ? process.env.SCOPES.split(',') : ["openid"],
@@ -62,6 +68,7 @@ export default {
   authBrokerScope: authBrokerScope,
   authBrokerRedirectUri: authBrokerRedirectUri,
   authBrokerSkipLogout: authBrokerSkipLogout,
+  authBrokerRequestStoreTtlMs: authBrokerRequestStoreTtlMs,
   authBrokerConfigured: authBrokerConfigured,
   authenticator: authenticator,
 }

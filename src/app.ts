@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import * as oidc from "oidc-provider";
+import Valkey from "iovalkey";
 import interactions from "./routes/interactions";
 import { DemoAccountSource } from "./account/DemoAccountSource";
 import { FileAccountSource } from "./account/FileAccountSource";
@@ -9,8 +10,13 @@ import config from "./config";
 import { interactionPolicies } from "./policies/interactionPolicies";
 import { issueRefreshToken } from "./policies/issueRefreshToken";
 import { loadAuthenticator } from "./authenticators";
-import { getIssuerStateForGrant } from "./util/issuerStateStore";
+import { getIssuerStateForGrant } from "./stores/issuerStateStore";
 import { loadReusableGrant } from "./util/loadReusableGrant";
+
+export const dataStoreClient = new Valkey({
+  host: config.dataStoreHost,
+  port: config.dataStorePort
+});
 
 export function createApp() {
   const app = express();

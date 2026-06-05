@@ -1,6 +1,7 @@
-import { MemoryStore } from "wallet-common";
+import { DataStore } from "./DataStore";
+import { dataStoreClient } from "../app";
 
-const issuerStateByGrantId = new MemoryStore<string, string>();
+const issuerStateByGrantId = new DataStore<string>("issuerStateByGrantId", dataStoreClient);
 
 export const saveIssuerStateForGrant = async (
   grantId: string,
@@ -18,3 +19,4 @@ export const getIssuerStateForGrant = async (grantId: unknown) => {
   }
   return issuerStateByGrantId.get(grantId);
 };
+ 

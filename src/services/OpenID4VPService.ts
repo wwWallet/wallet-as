@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { MemoryStore, OpenID4VPClientErrors, OpenID4VPClientAPI, OpenID4VPResponseMode, RPState } from "wallet-common";
+import { OpenID4VPClientErrors, OpenID4VPClientAPI, OpenID4VPResponseMode, RPState } from "wallet-common";
 import { defaultHttpClient } from "wallet-common";
 import { webcrypto } from "node:crypto";
 import { pemToBase64 } from "../util/pemToBase64";
@@ -7,6 +7,8 @@ import { decodeBase64Url } from "../util/decodeBase64Url";
 import config from "../config";
 import fs from 'fs';
 import path from "path";
+import { DataStore } from "../stores/DataStore";
+import { dataStoreClient } from "../app";
 
 const privateKeyPem = fs.readFileSync(path.join(__dirname, "../../keys/pem.key"), 'utf-8').toString();
 const leafCert = fs.readFileSync(path.join(__dirname, "../../keys/pem.crt"), 'utf-8').toString();
@@ -20,7 +22,7 @@ export type OpenidForPresentationsConfiguration = {
 };
 
 export class OpenID4VPService {
-  private static rpStateKV: MemoryStore<string, RPState | string> = new MemoryStore();
+  private static rpStateKV: DataStore<RPState | string> = new DataStore<RPState | string>("rpStateKV", dataStoreClient);
   public openid4vpClient: OpenID4VPClientAPI;
 
   private privateKeyPem: string = privateKeyPem;
