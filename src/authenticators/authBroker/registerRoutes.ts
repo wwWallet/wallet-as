@@ -4,7 +4,7 @@ import config from "../../config";
 import IAccountSource from "../../interfaces/IAccountSource";
 import * as openidClient from "openid-client";
 import { DataStore } from "../../stores/DataStore";
-import { dataStoreClient } from "../../app";
+import { dataStoreClient } from "../../stores/dataStoreClient";
 
 type PendingBrokerRequest = {
   state: string;

@@ -8,7 +8,7 @@ import config from "../config";
 import fs from 'fs';
 import path from "path";
 import { DataStore } from "../stores/DataStore";
-import { dataStoreClient } from "../app";
+import { dataStoreClient } from "../stores/dataStoreClient";
 
 const privateKeyPem = fs.readFileSync(path.join(__dirname, "../../keys/pem.key"), 'utf-8').toString();
 const leafCert = fs.readFileSync(path.join(__dirname, "../../keys/pem.crt"), 'utf-8').toString();

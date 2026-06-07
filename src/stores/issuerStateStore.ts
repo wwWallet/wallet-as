@@ -1,5 +1,5 @@
 import { DataStore } from "./DataStore";
-import { dataStoreClient } from "../app";
+import { dataStoreClient } from "./dataStoreClient";
 
 const issuerStateByGrantId = new DataStore<string>(dataStoreClient, "issuerStateByGrantId");
 
