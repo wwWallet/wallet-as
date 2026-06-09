@@ -46,7 +46,7 @@ export class DataStore<TValue> implements GenericStore<string, TValue> {
 
 	async getAll(): Promise<TValue[]> {
 		throw new Error(
-			"getAll() is not supported by DataStore. Use GenericDataStore if enumeration is required.",
+			"getAll() is not supported by DataStore.",
 		);
 	}
 }
