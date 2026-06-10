@@ -9,9 +9,12 @@ import config from "./config";
 import { interactionPolicies } from "./policies/interactionPolicies";
 import { issueRefreshToken } from "./policies/issueRefreshToken";
 import { loadAuthenticator } from "./authenticators";
-import { getIssuerStateForGrant } from "./util/issuerStateStore";
 import { randomBytes } from 'crypto';
 import { exportJWK, importSPKI } from "jose";
+import {
+  consumeIssuerStateForAuthorizationCode,
+  saveIssuerStateForAuthorizationCode,
+} from "./util/issuerStateStore";
 
 export function createApp() {
   const app = express();
@@ -106,8 +109,8 @@ export function createApp() {
       },
       resourceIndicators: {
         enabled: true,
-        async getResourceServerInfo(ctx, resourceIndicator, client) {     
-          
+        async getResourceServerInfo(ctx, resourceIndicator, client) {
+
           if (!resourceIndicator || !config.trustedIssuers.includes(resourceIndicator)) {
             throw new oidc.errors.InvalidTarget();
           }
@@ -190,10 +193,19 @@ export function createApp() {
       client_attestation_pop_signing_alg_values_supported: ['ES256']
     },
     extraParams: ['issuer_state'],
-    async extraTokenClaims(_ctx, token) {
-      const issuerState = await getIssuerStateForGrant((token as any).grantId);
+    async extraTokenClaims(ctx, _token) {
+      const issuerState = await consumeIssuerStateForAuthorizationCode(
+        (ctx.oidc.entities.AuthorizationCode as any)?.jti
+      );
       return issuerState ? { issuer_state: issuerState } : undefined;
     },
+  });
+  provider.on("authorization_code.saved", (authorizationCode) => {
+    const issuerState = (oidc.Provider.ctx?.oidc.params as any)?.issuer_state;
+    void saveIssuerStateForAuthorizationCode(
+      authorizationCode.jti,
+      issuerState
+    );
   });
   provider.proxy = true;
   const accountSource = config.demoUsername
