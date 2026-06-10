@@ -25,14 +25,14 @@ try {
   trustedRootCertificates = [];
 }
 
-let trustedClientAttesters: Record<string, JWK> = {};
+let trustedClientAttesters: Record<string, string> = {};
 try {
   trustedClientAttesters = Object.fromEntries(
     Object.entries(
       JSON.parse(process.env.TRUSTED_CLIENT_ATTESTERS ?? '{}')
     ).map(([iss, encoded]) => [
       iss,
-      JSON.parse(Buffer.from(encoded as string, 'base64').toString('utf8'))
+      Buffer.from(encoded as string, 'base64').toString('utf8')
     ])
   );
 } catch (err) {

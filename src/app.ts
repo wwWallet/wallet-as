@@ -11,6 +11,7 @@ import { issueRefreshToken } from "./policies/issueRefreshToken";
 import { loadAuthenticator } from "./authenticators";
 import { getIssuerStateForGrant } from "./util/issuerStateStore";
 import { randomBytes } from 'crypto';
+import { exportJWK, importSPKI } from "jose";
 
 export function createApp() {
   const app = express();
@@ -149,7 +150,15 @@ export function createApp() {
           if (!Object.keys(config.trustedClientAttesters).includes(iss)) {
             throw new Error('unknown attester');
           }
-          return config.trustedClientAttesters[iss];
+
+          return (
+            await exportJWK(
+              await importSPKI(
+                config.trustedClientAttesters[iss],
+                'ES256'
+              )
+            )
+          );
         },
 
         async assertAttestationJwtAndPop(
