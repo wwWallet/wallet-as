@@ -56,6 +56,15 @@ export function createApp() {
         : 'client_secret_basic',
     },
     {
+      client_id: "wallet-client",
+      redirect_uris: ["openid4vp://"],
+      post_logout_redirect_uris: ["openid4vp://"],
+      grant_types: ["authorization_code", "refresh_token"],
+      logo_uri:
+        "https://dev-i4mlab.aegean.gr/itb/assets/images/ec.png",
+      token_endpoint_auth_method: 'attest_jwt_client_auth' as any
+    },
+    {
       client_id: "1233",
       client_secret: "1233",
       redirect_uris: [config.walletUrl],
