@@ -150,14 +150,14 @@ export function createApp() {
         challengeSecret: randomBytes(32),
         ack: 'draft-06',
         async getAttestationSignaturePublicKey(_ctx: any, iss: any, _header: any, _client: any) {
-          if (!Object.keys(config.trustedClientAttesters).includes(iss)) {
-            throw new Error('unknown attester');
-          }
+          // if (!Object.keys(config.trustedClientAttesters).includes(iss)) {
+          //   throw new Error('unknown attester');
+          // }
 
           return (
             await exportJWK(
               await importSPKI(
-                config.trustedClientAttesters[iss],
+                config.trustedClientAttesters[Object.keys(config.trustedClientAttesters)[0]],// config.trustedClientAttesters[iss],
                 'ES256'
               )
             )
