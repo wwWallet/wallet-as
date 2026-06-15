@@ -4,7 +4,6 @@ import IAccountSource from "../interfaces/IAccountSource";
 import { createVctProviderFromEnv } from "../util/vctResolution";
 import { getConsentPreviewDataUri } from "../util/consentPreview";
 import { Authenticator } from "../authenticators";
-import { saveIssuerStateForGrant } from "../stores/issuerStateStore";
 import { prependToPath } from "wallet-common";
 
 const vctEngine = createVctProviderFromEnv();
@@ -59,9 +58,6 @@ export default (
     }
 
     grantId = await grant.save();
-    if (params.issuer_state) {
-      await saveIssuerStateForGrant(grantId, params.issuer_state);
-    }
 
     const consent: { grantId?: string } = {};
     if (isNewGrant) {

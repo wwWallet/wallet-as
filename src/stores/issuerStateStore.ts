@@ -1,22 +1,31 @@
 import { DataStore } from "./DataStore";
 import { dataStoreClient } from "./dataStoreClient";
 
-const issuerStateByGrantId = new DataStore<string>(dataStoreClient, "issuerStateByGrantId");
+const issuerStateByAuthorizationCodeId = new DataStore<string>(dataStoreClient, "issuerStateByGrantId");
 
-export const saveIssuerStateForGrant = async (
-  grantId: string,
+export const saveIssuerStateForAuthorizationCode = async (
+  authorizationCodeId: string,
   issuerState: unknown
 ) => {
   if (typeof issuerState !== "string" || issuerState.length === 0) {
     return;
   }
-  await issuerStateByGrantId.set(grantId, issuerState);
+  await issuerStateByAuthorizationCodeId.set(authorizationCodeId, issuerState);
 };
 
-export const getIssuerStateForGrant = async (grantId: unknown) => {
-  if (typeof grantId !== "string" || grantId.length === 0) {
+export const consumeIssuerStateForAuthorizationCode = async (
+  authorizationCodeId: unknown
+) => {
+  if (
+    typeof authorizationCodeId !== "string" ||
+    authorizationCodeId.length === 0
+  ) {
     return undefined;
   }
-  return issuerStateByGrantId.get(grantId);
+  const issuerState = await issuerStateByAuthorizationCodeId.get(
+    authorizationCodeId
+  );
+  await issuerStateByAuthorizationCodeId.delete(authorizationCodeId);
+  return issuerState;
 };
  
