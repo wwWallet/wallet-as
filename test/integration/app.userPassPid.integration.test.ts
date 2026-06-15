@@ -143,7 +143,7 @@ describe("app integration", () => {
     });
   });
 
-  describe("data store", () => {
+  describe("token ttl", () => {
     const originalEnv = process.env;
 
     afterAll(() => {
@@ -158,9 +158,9 @@ describe("app integration", () => {
       };
 
       vi.resetModules();
-      const { createApp: createDataStoreApp } = await import("../../src/app");
-      const { app: dataStoreApp } = createDataStoreApp();
-      const agent = request.agent(dataStoreApp);
+      const { createApp: createTtlApp } = await import("../../src/app");
+      const { app: ttlApp } = createTtlApp();
+      const agent = request.agent(ttlApp);
 
       const tokenResponse = await issueAccessToken(agent);
       expect(tokenResponse.expiresIn).toBe(120);
