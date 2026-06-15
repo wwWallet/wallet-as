@@ -30,33 +30,7 @@ export function createApp() {
   app.locals.demoUsername = config.demoUsername;
   app.locals.demoPassword = config.demoPassword;
 
-  const oidClients: oidc.ClientMetadata[] = [
-    {
-      client_id: "test",
-      client_secret: "test",
-      redirect_uris: ["http://localhost:9876/callback"],
-      grant_types: ["authorization_code", "refresh_token"],
-      logo_uri:
-        "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-    },
-    {
-      client_id: "test2",
-      client_secret: "test2",
-      redirect_uris: ["http://localhost:9876/callback"],
-      grant_types: ["authorization_code", "refresh_token"],
-      logo_uri:
-        "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-    },
-    {
-      client_id: "1233",
-      token_endpoint_auth_method: "none",
-      redirect_uris: [config.walletUrl],
-      post_logout_redirect_uris: [config.walletUrl],
-      grant_types: ["authorization_code", "refresh_token"],
-      logo_uri:
-        "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-    },
-  ];
+  const oidClients: oidc.ClientMetadata[] = [...config.oidClients];
 
   if (config.introspectionClient && config.introspectionClientSecret) {
     console.log("Adding introspection client");

@@ -1,6 +1,34 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 describe("config", () => {
+  const originalCwd = process.cwd();
+
+  function writeClientsFile(root: string, clients: unknown) {
+    const configDir = path.join(root, "src/config");
+    fs.mkdirSync(configDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(configDir, "oauth2clients.json"),
+      JSON.stringify(clients),
+      "utf-8"
+    );
+  }
+
+  async function importConfigFromTempProject(clients: unknown) {
+    const tempProject = fs.mkdtempSync(path.join(os.tmpdir(), "wallet-as-config-"));
+    writeClientsFile(tempProject, clients);
+    process.chdir(tempProject);
+    vi.resetModules();
+
+    try {
+      return await import("../../src/config");
+    } finally {
+      process.chdir(originalCwd);
+    }
+  }
+
   it("normalizes BASE_PATH and reads basic env vars", async () => {
     const originalEnv = process.env;
     process.env = {
@@ -54,5 +82,40 @@ describe("config", () => {
     );
 
     process.env = originalEnv;
+  });
+
+  it("loads oid clients from the project config file and preserves extra client metadata", async () => {
+    const { default: config } = await importConfigFromTempProject([
+      {
+        client_id: "wallet-client",
+        client_secret: "wallet-secret",
+        redirect_uris: ["https://wallet.example/callback"],
+        grant_types: ["authorization_code", "refresh_token"],
+        client_name: "wwWallet Client",
+        jwks_uri: "https://wallet.example/jwks.json",
+      },
+    ]);
+
+    expect(config.oidClients).toEqual([
+      {
+        client_id: "wallet-client",
+        client_secret: "wallet-secret",
+        redirect_uris: ["https://wallet.example/callback"],
+        grant_types: ["authorization_code", "refresh_token"],
+        client_name: "wwWallet Client",
+        jwks_uri: "https://wallet.example/jwks.json",
+      },
+    ]);
+  });
+
+  it("rejects oauth clients that do not match ClientMetadata requirements", async () => {
+    await expect(
+      importConfigFromTempProject([
+        {
+          client_id: "broken-client",
+          grant_types: ["authorization_code"],
+        },
+      ])
+    ).rejects.toThrow(/redirect_uris/);
   });
 });
