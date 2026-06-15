@@ -124,9 +124,26 @@ describe("app integration", () => {
       expect(introspectionRes.body.active).toBe(true);
       expect(introspectionRes.body.issuer_state).toBe(issuerState);
     });
+
+    it("returns a huge issuer_state in introspection after token issuance", async () => {
+      const issuerState = "x".repeat(10_000);
+      const tokenResponse = await issueAccessToken(agent, {
+        issuer_state: issuerState,
+      });
+
+      const introspectionRes = await agent
+        .post(tokenResponse.introspectionPath)
+        .auth("test", "test")
+        .type("form")
+        .send({ token: tokenResponse.accessToken })
+        .expect(200);
+
+      expect(introspectionRes.body.active).toBe(true);
+      expect(introspectionRes.body.issuer_state).toBe(issuerState);
+    });
   });
 
-  describe("token ttl", () => {
+  describe("data store", () => {
     const originalEnv = process.env;
 
     afterAll(() => {
@@ -141,9 +158,9 @@ describe("app integration", () => {
       };
 
       vi.resetModules();
-      const { createApp: createTtlApp } = await import("../../src/app");
-      const { app: ttlApp } = createTtlApp();
-      const agent = request.agent(ttlApp);
+      const { createApp: createDataStoreApp } = await import("../../src/app");
+      const { app: dataStoreApp } = createDataStoreApp();
+      const agent = request.agent(dataStoreApp);
 
       const tokenResponse = await issueAccessToken(agent);
       expect(tokenResponse.expiresIn).toBe(120);
@@ -188,6 +205,60 @@ describe("app integration", () => {
 
       expect(typeof refreshedTokenRes.body.access_token).toBe("string");
       expect(refreshedTokenRes.body.access_token.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("application restart", () => {
+    const originalEnv = process.env;
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    it("can introspect tokens issued before the application restarted", async () => {
+      process.env = {
+        ...originalEnv,
+        AUTHENTICATOR: "user-pass-pid",
+      };
+
+      //
+      // First application instance
+      //
+      vi.resetModules();
+
+      const { createApp: createFirstApp } = await import("../../src/app");
+
+      const { app: firstApp } = createFirstApp();
+
+      const firstAgent = request.agent(firstApp);
+
+      const token = await issueAccessToken(firstAgent);
+
+      //
+      // Simulate application restart
+      //
+      vi.resetModules();
+
+      const { createApp: createSecondApp } = await import("../../src/app");
+
+      const { app: secondApp } = createSecondApp();
+
+      const secondAgent = request.agent(secondApp);
+
+      //
+      // The second instance should still be able to read state
+      // from Valkey.
+      //
+      const introspection = await secondAgent
+        .post(token.introspectionPath)
+        .auth("test", "test")
+        .type("form")
+        .send({
+          token: token.accessToken,
+        })
+        .expect(200);
+
+      expect(introspection.body.active).toBe(true);
     });
   });
 });
