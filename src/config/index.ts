@@ -13,6 +13,7 @@ const basePath = rawBasePath
 
 const dataStoreHost = process.env.DATA_STORE_HOST || "localhost";
 const dataStorePort = Number(process.env.DATA_STORE_PORT) || 6379;
+const dataStorePassword = process.env.DATA_STORE_PASSWORD || null;
 
 const certsDir = path.resolve(process.cwd(), "./certs");
 let trustedRootCertificates: string[] = [];
@@ -74,6 +75,7 @@ export default {
   walletUrl: process.env.WALLET_URL || "http://localhost:3000",
   dataStoreHost: dataStoreHost,
   dataStorePort: dataStorePort,
+  dataStorePassword: dataStorePassword,
   oidClients: loadOAuth2Clients(),
   introspectionClient: process.env.INTROSPECTION_CLIENT || null,
   introspectionClientSecret: process.env.INTROSPECTION_CLIENT_SECRET || null,
