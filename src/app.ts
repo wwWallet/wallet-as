@@ -12,7 +12,7 @@ import { loadAuthenticator } from "./authenticators";
 import {
   consumeIssuerStateForAuthorizationCode,
   saveIssuerStateForAuthorizationCode,
-} from "./util/issuerStateStore";
+} from "./stores/issuerStateStore";
 
 export function createApp() {
   const app = express();
