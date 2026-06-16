@@ -15,6 +15,14 @@ const dataStoreHost = process.env.DATA_STORE_HOST || "localhost";
 const dataStorePort = Number(process.env.DATA_STORE_PORT) || 6379;
 const dataStorePassword = process.env.DATA_STORE_PASSWORD || null;
 
+if (process.env.NODE_ENV === "production" && !dataStorePassword) {
+  console.error(
+    `FATAL: Insecure data store found in production.`
+  );
+
+  process.exit(1);
+}
+
 const certsDir = path.resolve(process.cwd(), "./certs");
 let trustedRootCertificates: string[] = [];
 try {

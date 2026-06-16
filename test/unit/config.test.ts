@@ -120,4 +120,38 @@ describe("config", () => {
       ])
     ).rejects.toThrow(/redirect_uris/);
   });
+
+  it("does not allow production builds to use an insecure Data Store", async () => {
+    const originalEnv = process.env;
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: "production",
+      DATA_STORE_PASSWORD: undefined
+    };
+
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation((code?: number) => {
+        throw new Error(`process.exit:${code}`);
+      });
+    const consoleSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    vi.resetModules();
+
+    try {
+      await expect(import("../../src/config")).rejects.toThrow(
+        "process.exit:1"
+      );
+      expect(exitSpy).toHaveBeenCalledWith(1);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "FATAL: Insecure data store found in production."
+      );
+    } finally {
+      process.env = originalEnv;
+      exitSpy.mockRestore();
+      consoleSpy.mockRestore();
+    }
+  });
 });
