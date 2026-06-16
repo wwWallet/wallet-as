@@ -83,6 +83,7 @@ export default {
   ttl: {
     accessToken: Number(process.env.ACCESS_TOKEN_TTL) || 30,
     refreshToken: Number(process.env.REFRESH_TOKEN_TTL) || 2592000,
+    authorizationCode: Number(process.env.AUTHORIZATION_CODE_TTL) || 60,
   },
   demoUsername: process.env.USER_PASS_PID_DEMO_USERNAME || null,
   demoPassword: process.env.USER_PASS_PID_DEMO_PASSWORD || null,
