@@ -13,6 +13,8 @@ import {
   consumeIssuerStateForAuthorizationCode,
   saveIssuerStateForAuthorizationCode,
 } from "./stores/issuerStateStore";
+import { dataStoreClient } from "./stores/dataStoreClient";
+import { createOidcValkeyAdapter } from "./stores/OidcValkeyAdapter";
 
 export function createApp() {
   const app = express();
@@ -42,6 +44,7 @@ export function createApp() {
   }
 
   const provider = new oidc.Provider(config.serviceUrl, {
+    adapter: createOidcValkeyAdapter(dataStoreClient),
     clients: oidClients,
 
     scopes: config.scopes,
@@ -113,6 +116,7 @@ export function createApp() {
     ttl: {
       AccessToken: config.ttl.accessToken,
       RefreshToken: config.ttl.refreshToken,
+      AuthorizationCode: config.ttl.authorizationCode,
     },
     extraParams: ['issuer_state'],
     async extraTokenClaims(ctx, _token) {

@@ -36,6 +36,7 @@ describe("config", () => {
       INTROSPECTION_CLIENT: "client-a",
       INTROSPECTION_CLIENT_SECRET: "secret-a",
       BASE_PATH: "as",
+      AUTHORIZATION_CODE_TTL: "90",
     };
 
     vi.resetModules();
@@ -45,6 +46,7 @@ describe("config", () => {
     expect(config.introspectionClientSecret).toBe("secret-a");
     expect(config.basePath).toBe("/as");
     expect(config.authBrokerRedirectUri).toBe("http://localhost:6060/interaction/authBroker/callback");
+    expect(config.ttl.authorizationCode).toBe(90);
 
     process.env = originalEnv;
   });
