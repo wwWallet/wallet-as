@@ -9,7 +9,7 @@
     "build": "tsc",
     "lint": "tsc --noEmit",
     "test:unit": "vitest test/unit/*.test.ts",
-    "test:integration": "vitest test/integration/*.test.ts"
+    "test:integration": "vitest test/integration/*.test.ts --config vitest.integration.config.ts"
   },
   "author": "",
   "license": "BSD-2-Clause",
