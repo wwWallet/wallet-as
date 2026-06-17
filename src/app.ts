@@ -43,6 +43,7 @@ export function createApp() {
 
   const provider = new oidc.Provider(config.serviceUrl, {
     clients: oidClients,
+    jwks: config.oidcJwks,
 
     scopes: config.scopes,
     interactions: {
