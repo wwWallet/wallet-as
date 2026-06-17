@@ -11,6 +11,18 @@ const basePath = rawBasePath
   ? `/${rawBasePath.replace(/^\/+|\/+$/g, "")}`
   : "";
 
+const dataStoreHost = process.env.DATA_STORE_HOST || "localhost";
+const dataStorePort = Number(process.env.DATA_STORE_PORT) || 6379;
+const dataStorePassword = process.env.DATA_STORE_PASSWORD || null;
+
+if (process.env.NODE_ENV === "production" && !dataStorePassword) {
+  console.error(
+    `FATAL: Insecure data store found in production.`
+  );
+
+  process.exit(1);
+}
+
 const certsDir = path.resolve(process.cwd(), "./certs");
 let trustedRootCertificates: string[] = [];
 try {
@@ -38,6 +50,7 @@ const authBrokerSkipLogout =
   process.env.AUTH_BROKER_SKIP_LOGOUT === "true";
 const authenticator = process.env.AUTHENTICATOR?.trim() || "user-pass-pid";
 const authBrokerConfigured = Boolean(authBrokerProviderUrl && authBrokerClientId);
+const authBrokerRequestStoreTtlMs = Number(process.env.AUTH_BROKER_REQUEST_STORE_TTL_MS || 10 * 60 * 1000);
 
 const clientMetadataSchema = z.looseObject({
   client_id: z.string().trim().min(1),
@@ -68,6 +81,9 @@ export default {
   serviceUrl: serviceUrl,
   basePath: basePath,
   walletUrl: process.env.WALLET_URL || "http://localhost:3000",
+  dataStoreHost: dataStoreHost,
+  dataStorePort: dataStorePort,
+  dataStorePassword: dataStorePassword,
   oidClients: loadOAuth2Clients(),
   introspectionClient: process.env.INTROSPECTION_CLIENT || null,
   introspectionClientSecret: process.env.INTROSPECTION_CLIENT_SECRET || null,
@@ -75,6 +91,7 @@ export default {
   ttl: {
     accessToken: Number(process.env.ACCESS_TOKEN_TTL) || 30,
     refreshToken: Number(process.env.REFRESH_TOKEN_TTL) || 2592000,
+    authorizationCode: Number(process.env.AUTHORIZATION_CODE_TTL) || 60,
   },
   demoUsername: process.env.USER_PASS_PID_DEMO_USERNAME || null,
   demoPassword: process.env.USER_PASS_PID_DEMO_PASSWORD || null,
@@ -88,6 +105,7 @@ export default {
   authBrokerScope: authBrokerScope,
   authBrokerRedirectUri: authBrokerRedirectUri,
   authBrokerSkipLogout: authBrokerSkipLogout,
+  authBrokerRequestStoreTtlMs: authBrokerRequestStoreTtlMs,
   authBrokerConfigured: authBrokerConfigured,
   authenticator: authenticator,
 }
