@@ -3,7 +3,8 @@ import Provider from "oidc-provider";
 import config from "../../config";
 import IAccountSource from "../../interfaces/IAccountSource";
 import * as openidClient from "openid-client";
-import { MemoryStore } from "wallet-common";
+import { DataStore } from "../../stores/DataStore";
+import { dataStoreClient } from "../../stores/dataStoreClient";
 
 type PendingBrokerRequest = {
   state: string;
@@ -11,23 +12,8 @@ type PendingBrokerRequest = {
   createdAt: number;
 };
 
-const requestStore = new MemoryStore<string, PendingBrokerRequest>(10000);
-const REQUEST_TTL_MS = 10 * 60 * 1000;
+const requestStore = new DataStore<PendingBrokerRequest>(dataStoreClient, "brokerRequestStore");
 let brokerConfigurationPromise: Promise<openidClient.Configuration> | null = null;
-
-const getValidRequestState = async (state: string): Promise<PendingBrokerRequest | undefined> => {
-  const requestState = await requestStore.get(state);
-  if (!requestState) {
-    return undefined;
-  }
-
-  if (Date.now() - requestState.createdAt > REQUEST_TTL_MS) {
-    await requestStore.delete(state);
-    return undefined;
-  }
-
-  return requestState;
-};
 
 const getBrokerConfiguration = async () => {
   const authBrokerProviderUrl = config.authBrokerProviderUrl;
@@ -86,7 +72,7 @@ export const registerAuthBrokerRoutes = (app: Express.Router, provider: Provider
         state,
         uid: interaction.uid,
         createdAt: Date.now(),
-      });
+      }, config.authBrokerRequestStoreTtlMs);
 
       const authorizationUrl = openidClient.buildAuthorizationUrl(brokerConfiguration, {
         scope: config.authBrokerScope,
@@ -113,7 +99,7 @@ export const registerAuthBrokerRoutes = (app: Express.Router, provider: Provider
       });
     }
 
-    const requestState = await getValidRequestState(state);
+    const requestState = await requestStore.get(state);
     if (!requestState) {
       return res.status(400).json({
         error: "invalid_request",
@@ -173,7 +159,7 @@ export const registerAuthBrokerRoutes = (app: Express.Router, provider: Provider
         return;
       }
 
-      const requestState = await getValidRequestState(state);
+      const requestState = await requestStore.get(state);
       if (!requestState || requestState.uid !== interaction.uid) {
         await provider.interactionFinished(
           req,

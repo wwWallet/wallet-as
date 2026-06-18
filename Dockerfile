@@ -20,6 +20,7 @@ USER nonroot
 
 COPY --from=builder --chown=nonroot:nonroot /app/package.json .
 COPY --from=builder --chown=nonroot:nonroot /app/dist ./dist
+COPY --from=builder --chown=nonroot:nonroot /app/src/config/oauth2clients.json ./src/config/oauth2clients.json
 COPY --from=builder --chown=nonroot:nonroot /app/src/views ./src/views
 COPY --from=builder --chown=nonroot:nonroot /app/node_modules ./node_modules
 COPY --from=builder --chown=nonroot:nonroot /app/public ./public
