@@ -123,6 +123,5 @@ export default {
   authBrokerRequestStoreTtlMs: authBrokerRequestStoreTtlMs,
   authBrokerConfigured: authBrokerConfigured,
   authenticator: authenticator,
-  attestationBasedClientAuthentication: process.env.ATTESTATION_BASED_CLIENT_AUTHENTICATION === "true" || false,
   trustedClientAttesters: trustedClientAttesters ?? {},
 }
