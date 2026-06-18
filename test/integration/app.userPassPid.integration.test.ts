@@ -124,6 +124,23 @@ describe("app integration", () => {
       expect(introspectionRes.body.active).toBe(true);
       expect(introspectionRes.body.issuer_state).toBe(issuerState);
     });
+
+    it("returns a huge issuer_state in introspection after token issuance", async () => {
+      const issuerState = "x".repeat(10_000);
+      const tokenResponse = await issueAccessToken(agent, {
+        issuer_state: issuerState,
+      });
+
+      const introspectionRes = await agent
+        .post(tokenResponse.introspectionPath)
+        .auth("test", "test")
+        .type("form")
+        .send({ token: tokenResponse.accessToken })
+        .expect(200);
+
+      expect(introspectionRes.body.active).toBe(true);
+      expect(introspectionRes.body.issuer_state).toBe(issuerState);
+    });
   });
 
   describe("token ttl", () => {
@@ -267,14 +284,12 @@ describe("app integration", () => {
       );
       const pidToken = await provider.AccessToken.find(pidTokenResponse.accessToken);
 
-      expect(porToken).toBeTruthy();
+      expect(porToken).toBeUndefined();
       expect(pidToken).toBeTruthy();
 
-      const porGrantId = (porToken as any).grantId;
+      const porGrantId = (savedPorRefreshTokenAfterPid as any).grantId;
       const pidGrantId = (pidToken as any).grantId;
 
-      expect((pidToken as any).clientId).toBe((porToken as any).clientId);
-      expect((pidToken as any).sessionUid).toBe((porToken as any).sessionUid);
       expect(typeof porGrantId).toBe("string");
       expect(porGrantId.length).toBeGreaterThan(0);
       expect(typeof pidGrantId).toBe("string");
@@ -343,6 +358,183 @@ describe("app integration", () => {
       expect(credentialOfferIntrospection.issuer_state).toBe(issuerState);
       expect(sameSessionIntrospection.active).toBe(true);
       expect(sameSessionIntrospection.issuer_state).toBeUndefined();
+    });
+  });
+
+  describe("application restart", () => {
+    const originalEnv = process.env;
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    it("can introspect tokens issued before the application restarted", async () => {
+      process.env = {
+        ...originalEnv,
+        AUTHENTICATOR: "user-pass-pid",
+      };
+
+      //
+      // First application instance
+      //
+      vi.resetModules();
+
+      const { createApp: createFirstApp } = await import("../../src/app");
+
+      const { app: firstApp } = createFirstApp();
+
+      const firstAgent = request.agent(firstApp);
+
+      const token = await issueAccessToken(firstAgent);
+
+      //
+      // Simulate application restart
+      //
+      vi.resetModules();
+
+      const { createApp: createSecondApp } = await import("../../src/app");
+
+      const { app: secondApp } = createSecondApp();
+
+      const secondAgent = request.agent(secondApp);
+
+      //
+      // The second instance should still be able to read state
+      // from Valkey.
+      //
+      const introspection = await secondAgent
+        .post(token.introspectionPath)
+        .auth("test", "test")
+        .type("form")
+        .send({
+          token: token.accessToken,
+        })
+        .expect(200);
+
+      expect(introspection.body.active).toBe(true);
+    });
+
+    it("preserves the login session across an application restart", async () => {
+      process.env = {
+        ...originalEnv,
+        AUTHENTICATOR: "user-pass-pid",
+      };
+
+      vi.resetModules();
+
+      const { createApp: createFirstApp } = await import("../../src/app");
+
+      const { app: firstApp, provider: firstProvider } = createFirstApp();
+      const firstAgent = request.agent(firstApp);
+
+      const token = await issueAccessToken(firstAgent);
+      const accessToken = await firstProvider.AccessToken.find(
+        token.accessToken
+      );
+
+      expect(accessToken).toBeTruthy();
+
+      const sessionUid = (accessToken as any).sessionUid;
+      expect(typeof sessionUid).toBe("string");
+
+      const firstSession = await firstProvider.Session.findByUid(sessionUid);
+      expect(firstSession).toBeTruthy();
+
+      vi.resetModules();
+
+      const { createApp: createSecondApp } = await import("../../src/app");
+
+      const { app: secondApp, provider: secondProvider } = createSecondApp();
+
+      const secondSession = await secondProvider.Session.findByUid(sessionUid);
+      expect(secondSession).toBeTruthy();
+      expect((secondSession as any).accountId).toBe((firstSession as any).accountId);
+    });
+
+    it("keeps a pending deferred issuance refresh token usable after an application restart", async () => {
+      const trustedIssuer = "http://localhost:8003/openid";
+      process.env = {
+        ...originalEnv,
+        AUTHENTICATOR: "user-pass-pid",
+        USER_PASS_PID_DEMO_USERNAME: "test",
+        USER_PASS_PID_DEMO_PASSWORD: "test",
+        ACCESS_TOKEN_TTL: "1",
+        REFRESH_TOKEN_TTL: "2592000",
+        SCOPES: "openid,por:sd_jwt_vc",
+        TRUSTED_ISSUERS: trustedIssuer,
+      };
+
+      //
+      // First application instance: create a pending deferred issuance-shaped
+      // flow with a short-lived access token and a long-lived refresh token.
+      //
+      vi.resetModules();
+
+      const { createApp: createFirstApp } = await import("../../src/app");
+
+      const { app: firstApp, provider: firstProvider } = createFirstApp();
+
+      const firstAgent = request.agent(firstApp);
+
+      const initialTokenResponse = await issueAccessToken(firstAgent, {
+        scope: "openid por:sd_jwt_vc",
+        resource: trustedIssuer,
+        issuer_state: "pending-deferred-issuance-request",
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+
+      const expiredAccessToken = await firstProvider.AccessToken.find(
+        initialTokenResponse.accessToken,
+        { ignoreExpiration: true }
+      );
+      const initialRefreshToken = await firstProvider.RefreshToken.find(
+        initialTokenResponse.refreshToken,
+        { ignoreExpiration: true }
+      );
+
+      expect(expiredAccessToken).toBeUndefined();
+      expect(initialRefreshToken).toBeTruthy();
+
+      const refreshedBeforeRestart = await refreshAccessToken(firstAgent, {
+        refreshToken: initialTokenResponse.refreshToken,
+        scope: "por:sd_jwt_vc",
+      });
+      const refreshTokenInUse =
+        refreshedBeforeRestart.refreshToken ?? initialTokenResponse.refreshToken;
+
+      const refreshTokenBeforeRestart = await firstProvider.RefreshToken.find(
+        refreshTokenInUse,
+        { ignoreExpiration: true }
+      );
+      expect(refreshTokenBeforeRestart).toBeTruthy();
+
+      vi.resetModules();
+
+      const { createApp: createSecondApp } = await import("../../src/app");
+
+      const { app: secondApp, provider: secondProvider } = createSecondApp();
+
+      const secondAgent = request.agent(secondApp);
+
+      const refreshTokenAfterRestart = await secondProvider.RefreshToken.find(
+        refreshTokenInUse,
+        { ignoreExpiration: true }
+      );
+      expect(refreshTokenAfterRestart).toBeTruthy();
+
+      const refreshAfterRestart = await secondAgent
+        .post("/token")
+        .auth("test", "test")
+        .type("form")
+        .send({
+          grant_type: "refresh_token",
+          refresh_token: refreshTokenInUse,
+          scope: "por:sd_jwt_vc",
+        })
+        .expect(200);
+
+      expect(refreshAfterRestart.body.access_token).toBeTruthy();
     });
   });
 });

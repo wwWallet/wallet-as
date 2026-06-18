@@ -14,7 +14,9 @@ import { exportJWK, importSPKI } from "jose";
 import {
   consumeIssuerStateForAuthorizationCode,
   saveIssuerStateForAuthorizationCode,
-} from "./util/issuerStateStore";
+} from "./stores/issuerStateStore";
+import { dataStoreClient } from "./stores/dataStoreClient";
+import { createOidcValkeyAdapter } from "./stores/OidcValkeyAdapter";
 
 export function createApp() {
   const app = express();
@@ -32,42 +34,7 @@ export function createApp() {
   app.locals.demoUsername = config.demoUsername;
   app.locals.demoPassword = config.demoPassword;
 
-  const oidClients: oidc.ClientMetadata[] = [
-    {
-      client_id: "test",
-      client_secret: "test",
-      redirect_uris: ["http://localhost:9876/callback"],
-      grant_types: ["authorization_code", "refresh_token"],
-      logo_uri:
-        "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-      token_endpoint_auth_method: config.attestationBasedClientAuthentication
-        ? 'attest_jwt_client_auth' as any
-        : 'client_secret_basic',
-    },
-    {
-      client_id: "test2",
-      client_secret: "test2",
-      redirect_uris: ["http://localhost:9876/callback"],
-      grant_types: ["authorization_code", "refresh_token"],
-      logo_uri:
-        "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-      token_endpoint_auth_method: config.attestationBasedClientAuthentication
-        ? 'attest_jwt_client_auth' as any
-        : 'client_secret_basic',
-    },
-    {
-      client_id: "1233",
-      client_secret: "1233",
-      redirect_uris: [config.walletUrl],
-      post_logout_redirect_uris: [config.walletUrl],
-      grant_types: ["authorization_code", "refresh_token"],
-      logo_uri:
-        "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg",
-      token_endpoint_auth_method: config.attestationBasedClientAuthentication
-        ? 'attest_jwt_client_auth' as any
-        : 'client_secret_basic',
-    }
-  ];
+  const oidClients: oidc.ClientMetadata[] = [...config.oidClients];
 
   if (config.introspectionClient && config.introspectionClientSecret) {
     console.log("Adding introspection client");
@@ -79,6 +46,7 @@ export function createApp() {
   }
 
   const provider = new oidc.Provider(config.serviceUrl, {
+    adapter: createOidcValkeyAdapter(dataStoreClient),
     clients: oidClients,
 
     scopes: config.scopes,
@@ -179,6 +147,7 @@ export function createApp() {
     ttl: {
       AccessToken: config.ttl.accessToken,
       RefreshToken: config.ttl.refreshToken,
+      AuthorizationCode: config.ttl.authorizationCode,
     },
     clientAuthMethods: [
       'client_secret_basic',
