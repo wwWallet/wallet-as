@@ -15,6 +15,7 @@ import {
 } from "./stores/issuerStateStore";
 import { dataStoreClient } from "./stores/dataStoreClient";
 import { createOidcValkeyAdapter } from "./stores/OidcValkeyAdapter";
+import preAuthorizedCodeHandler from "./preAuthorizedCodeHandler";
 
 export function createApp() {
   const app = express();
@@ -143,6 +144,29 @@ export function createApp() {
   routesRoot.get("/", (_req, res) => res.render("index"));
   authenticator.registerRoutes(routesRoot, provider, accountSource);
   interactions(routesRoot, provider, accountSource, authenticator);
+
+
+  if (config.preAuthorizedCredentialIssuance) {
+    provider.registerGrantType(
+      "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+      preAuthorizedCodeHandler,
+      ["pre-authorized_code", "tx_code"],
+      []
+    );
+
+    routesRoot.post("/token", (req, _res, next) => {
+      if (
+        req.body?.grant_type ===
+        "urn:ietf:params:oauth:grant-type:pre-authorized_code" &&
+        !req.body.client_id
+      ) {
+        req.body.client_id = "__pre-authorized_code_client__";
+      }
+
+      next();
+    });
+  }
+
   routesRoot.use(provider.callback());
   app.use(config.basePath || "/", routesRoot);
 
