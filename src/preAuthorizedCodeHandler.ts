@@ -1,4 +1,5 @@
 import { calculateJwkThumbprint } from 'jose';
+import { errors } from 'oidc-provider';
 import { consumePreAuthorizedCode, PreAuthorizedCodeStoreItem } from './services/preAuthorizedCodeService';
 import config from './config';
 import { OpenidCredentialIssuerMetadata, prependToPath } from 'wallet-common';
@@ -15,50 +16,26 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 
 	const grant = await consumePreAuthorizedCode(pre_authorized_code, tx_code);
 
-	if (!grant) {
-		throw new provider.errors.InvalidGrant(
-			'unknown pre-authorized code',
-		);
+	if((grant as any).error) {
+		console.log(`Error consuming pre-authorized code: ${(grant as any).error_description}`);
+		throw new errors.InvalidRequest((grant as any).error);
 	}
 
-	if (grant.exp && grant.exp < Date.now()) {
-		throw new provider.errors.InvalidGrant(
-			'pre-authorized code has expired',
-		);
-	}
-
-	if (grant.tx_code) {
-		if (!tx_code) {
-			throw new provider.errors.InvalidRequest(
-				'tx_code required',
-			);
-		}
-
-		const txCodeValidationResult = String(tx_code) === String(grant.tx_value);
-
-		if (txCodeValidationResult === false) {
-			throw new provider.errors.InvalidGrant(
-				'invalid tx_code',
-			);
-		}
-	}
-
-	if (!grant.tx_code && tx_code) {
-		throw new provider.errors.InvalidRequest(
-			'server does not expect tx_code'
-		)
-	}
+	validatePreAuthorizedCodeGrant(grant, tx_code);
 
 	const client = await provider.Client.find('__pre-authorized_code_client__');
 	if (!client) {
-		throw new Error('invalid client');
+		throw new errors.InvalidClient('Could not find pre-authorized_code client');
 	}
 
 	const scope = await getScopeFromGrant(grant);
+	if (!scope) {
+		throw new errors.InvalidGrant('Could not resolve scope from grant.');
+	}
 
 	const accountId = grant.account_id;
 	if (!accountId) {
-		throw new Error('invalid account')
+		throw new errors.AccessDenied('invalid account_id')
 	}
 
 	const token = new provider.AccessToken({
@@ -121,7 +98,7 @@ async function mapCredentialConfigurationIdToScope(credential_configuration_id: 
 		return issuerMetadata.credential_configurations_supported[credential_configuration_id].scope;
 	} catch (error) {
 		console.log('error fetching scope: ', error);
-		return "";
+		return;
 	}
 }
 
@@ -129,4 +106,45 @@ async function getScopeFromGrant(grant: PreAuthorizedCodeStoreItem) {
 	const credential_configuration_id = grant.credential_configuration_ids ? grant.credential_configuration_ids[0] : "";
 	const scopeFromCredentialConfigurationId = await mapCredentialConfigurationIdToScope(credential_configuration_id);
 	return scopeFromCredentialConfigurationId;
+}
+
+async function validatePreAuthorizedCodeGrant(grant: PreAuthorizedCodeStoreItem, tx_code: string | number ) {
+	if((grant as any).error) {
+		console.log(`Error consuming pre-authorized code: ${(grant as any).error_description}`);
+		throw new errors.InvalidRequest((grant as any).error);
+	}
+
+	if (!grant) {
+		throw new errors.InvalidGrant(
+			'unknown pre-authorized code',
+		);
+	}
+
+	if (grant.exp && grant.exp < Date.now()) {
+		throw new errors.InvalidGrant(
+			'pre-authorized code has expired',
+		);
+	}
+
+	if (grant.tx_code) {
+		if (!tx_code) {
+			throw new errors.InvalidRequest(
+				'tx_code required',
+			);
+		}
+
+		const txCodeValidationResult = String(tx_code) === String(grant.tx_value);
+
+		if (txCodeValidationResult === false) {
+			throw new errors.InvalidGrant(
+				'invalid tx_code',
+			);
+		}
+	}
+
+	if (!grant.tx_code && tx_code) {
+		throw new errors.InvalidRequest(
+			'server does not expect tx_code'
+		)
+	}
 }

@@ -155,11 +155,7 @@ export function createApp() {
     );
 
     routesRoot.post("/token", (req, _res, next) => {
-      if (
-        req.body?.grant_type ===
-        "urn:ietf:params:oauth:grant-type:pre-authorized_code" &&
-        !req.body.client_id
-      ) {
+      if (req.body?.grant_type === "urn:ietf:params:oauth:grant-type:pre-authorized_code") {
         req.body.client_id = "__pre-authorized_code_client__";
       }
 

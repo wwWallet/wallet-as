@@ -47,11 +47,11 @@
         "response_types": [],
         "redirect_uris": [
             "http://localhost:3000"
-        ],
-        "application_type": "native"
+        ]
     },
     {
-        "client_id": "pest",
+        "client_id": "wallet_issuer",
+        "client_name": "Wallet Issuer",
         "client_secret": "test",
         "redirect_uris": [
             "http://localhost:8003/callback"

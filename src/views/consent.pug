@@ -9,7 +9,7 @@ html(lang="en")
     link(rel="stylesheet", href="styles/consent.css")
 
   body
-    - const clientName = ( client.clientId || client.client_id || 'Client');
+    - const clientName = ( client.clientName || client.clientId || client.client_id || 'Client');
     - const redirectUri = params.redirect_uri;
 
     .consent-page
