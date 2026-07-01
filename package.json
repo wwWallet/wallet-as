@@ -9,7 +9,7 @@
     "build": "tsc",
     "lint": "tsc --noEmit",
     "test:unit": "vitest test/unit/*.test.ts",
-    "test:integration": "vitest test/integration/*.test.ts"
+    "test:integration": "vitest test/integration/*.test.ts --config vitest.integration.config.ts"
   },
   "author": "",
   "license": "BSD-2-Clause",
@@ -19,6 +19,7 @@
     "@types/oidc-provider": "^9.5.0",
     "@types/supertest": "^6.0.3",
     "supertest": "^7.1.4",
+    "testcontainers": "^12.0.1",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3",
@@ -27,10 +28,11 @@
   "dependencies": {
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "iovalkey": "^0.3.3",
     "oidc-provider": "^9.6.0",
     "openid-client": "^6.8.2",
     "pug": "^3.0.3",
-    "wallet-common": "git+https://github.com/wwWallet/wallet-common.git#8cf222eb170009110c926b24a8b8cd0543a6b345",
+    "wallet-common": "git+https://github.com/wwWallet/wallet-common.git#c7b487b4bd99a5ee2800b330bfe077d7896d1ac9",
     "zod": "^4.3.6"
   }
 }

@@ -12,7 +12,10 @@ import { loadAuthenticator } from "./authenticators";
 import {
   consumeIssuerStateForAuthorizationCode,
   saveIssuerStateForAuthorizationCode,
-} from "./util/issuerStateStore";
+} from "./stores/issuerStateStore";
+import { dataStoreClient } from "./stores/dataStoreClient";
+import { createOidcValkeyAdapter } from "./stores/OidcValkeyAdapter";
+import preAuthorizedCodeHandler from "./oid4vci/preAuthorizedCodeHandler";
 
 export function createApp() {
   const app = express();
@@ -42,9 +45,15 @@ export function createApp() {
   }
 
   const provider = new oidc.Provider(config.serviceUrl, {
+    adapter: createOidcValkeyAdapter(dataStoreClient),
     clients: oidClients,
     jwks: config.oidcJwks,
 
+    discovery: {
+      ...(config.preAuthorizedCredentialIssuance ? {
+        "pre-authorized_grant_anonymous_access_supported": true,
+      } : {}),
+    },
     scopes: config.scopes,
     interactions: {
       policy: interactionPolicies(),
@@ -114,6 +123,7 @@ export function createApp() {
     ttl: {
       AccessToken: config.ttl.accessToken,
       RefreshToken: config.ttl.refreshToken,
+      AuthorizationCode: config.ttl.authorizationCode,
     },
     extraParams: ['issuer_state'],
     async extraTokenClaims(ctx, _token) {
@@ -140,6 +150,25 @@ export function createApp() {
   routesRoot.get("/", (_req, res) => res.render("index"));
   authenticator.registerRoutes(routesRoot, provider, accountSource);
   interactions(routesRoot, provider, accountSource, authenticator);
+
+
+  if (config.preAuthorizedCredentialIssuance) {
+    provider.registerGrantType(
+      "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+      preAuthorizedCodeHandler,
+      ["pre-authorized_code", "tx_code"],
+      []
+    );
+
+    routesRoot.post("/token", (req, _res, next) => {
+      if (req.body?.grant_type === "urn:ietf:params:oauth:grant-type:pre-authorized_code") {
+        req.body.client_id = "__pre-authorized_code_client__";
+      }
+
+      next();
+    });
+  }
+
   routesRoot.use(provider.callback());
   app.use(config.basePath || "/", routesRoot);
 

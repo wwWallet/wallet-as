@@ -9,7 +9,7 @@ html(lang="en")
     link(rel="stylesheet", href="styles/login.css")
 
   body
-    - const clientName = (client.clientId || client.client_id || 'Client');
+    - const clientName = (client.clientName || client.clientId || client.client_id || 'Client');
     - const clientInitial = (clientName && clientName.trim().charAt(0).toUpperCase()) || 'C';
 
     .login-page

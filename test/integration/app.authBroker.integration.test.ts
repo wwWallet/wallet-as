@@ -221,6 +221,91 @@ describe("app integration", () => {
       expect(tokenResponse.expiresIn).toBe(120);
     });
   });
+
+  describe("application restart", () => {
+    const originalEnv = process.env;
+    let externalServer: Server;
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    it("can introspect tokens issued before the application restarted", async () => {
+    //
+    // Start external issuer
+    //
+
+      const externalPort = await getFreePort();
+      const brokerPort = await getFreePort();
+
+      const externalIssuer = `http://127.0.0.1:${externalPort}`;
+      const brokerIssuer = `http://127.0.0.1:${brokerPort}`;
+
+      process.env = {
+        ...originalEnv,
+        AUTHENTICATOR: "user-pass-pid",
+        SERVICE_URL: externalIssuer,
+        USER_PASS_PID_DEMO_USERNAME: externalDemoUsername,
+        USER_PASS_PID_DEMO_PASSWORD: externalDemoPassword,
+      };
+
+      vi.resetModules();
+
+      const { createApp } = await import("../../src/app");
+
+      const { app: externalApp } = createApp();
+
+      externalServer = await listenOnPort(externalApp, externalPort);
+
+      const externalAgent = request.agent(`http://127.0.0.1:${externalPort}`);
+
+      //
+      // Configure broker
+      //
+
+      process.env = {
+        ...originalEnv,
+        AUTHENTICATOR: "auth-broker",
+        SERVICE_URL: brokerIssuer,
+        AUTH_BROKER_PROVIDER_URL: externalIssuer,
+        AUTH_BROKER_CLIENT_ID: brokerClientId,
+        AUTH_BROKER_CLIENT_SECRET: brokerClientSecret,
+        AUTH_BROKER_SCOPE: "openid",
+        AUTH_BROKER_REDIRECT_URI: externalRedirectUri,
+        AUTH_BROKER_SKIP_LOGOUT: "true",
+      };
+
+      //
+      // App instance #1
+      //
+
+      const firstAgent = await createBrokerApp();
+
+      const token = await issueAccessToken(
+        firstAgent,
+        externalAgent,
+        externalIssuer,
+        brokerIssuer
+      );
+
+      //
+      // "Restart"
+      //
+
+      const secondAgent = await createBrokerApp();
+
+      const introspection = await secondAgent
+        .post(token.introspectionPath)
+        .auth("test", "test")
+        .type("form")
+        .send({
+          token: token.accessToken,
+        })
+        .expect(200);
+
+      expect(introspection.body.active).toBe(true);
+    });
+  });
 });
 
 function extractInteractionUid(location: string) {
@@ -502,6 +587,16 @@ async function followRedirectsToBrokerCallback(
   }
 
   throw new Error("Too many redirects while trying to reach broker callback");
+}
+
+async function createBrokerApp() {
+  vi.resetModules();
+
+  const { createApp } = await import("../../src/app");
+
+  const { app } = createApp();
+
+  return request.agent(app);
 }
 
 function listenOnPort(app: Parameters<typeof createServer>[0], port: number) {
