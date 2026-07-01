@@ -108,4 +108,7 @@ export default {
   authBrokerRequestStoreTtlMs: authBrokerRequestStoreTtlMs,
   authBrokerConfigured: authBrokerConfigured,
   authenticator: authenticator,
+  preAuthorizedCredentialIssuance: process.env.PRE_AUTHORIZED_CREDENTIAL_ISSUANCE === 'true' || false,
+  preAuthorizedCodeApiUrl: process.env.PRE_AUTHORIZED_CODE_API_URL || "",
+  preAuthorizedCodeApiBearerToken: process.env.PRE_AUTHORIZED_CODE_API_BEARER_TOKEN || ""
 }
