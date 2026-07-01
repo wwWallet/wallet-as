@@ -10,6 +10,32 @@ const rawBasePath = process.env.BASE_PATH?.trim() || "";
 const basePath = rawBasePath
   ? `/${rawBasePath.replace(/^\/+|\/+$/g, "")}`
   : "";
+const oidcJwksPath = process.env.OIDC_JWKS_PATH || "./keys/oidc.jwks.json";
+let oidcJwks: oidc.JWKS | undefined;
+
+try {
+  const resolvedOidcJwksPath = path.resolve(process.cwd(), oidcJwksPath);
+  if (fs.existsSync(resolvedOidcJwksPath)) {
+    const oidcJwksSchema = z.object({
+      keys: z.array(z.unknown()).min(1),
+    });
+    oidcJwks = oidcJwksSchema.parse(
+      JSON.parse(fs.readFileSync(resolvedOidcJwksPath, "utf-8"))
+    ) as oidc.JWKS;
+  } else if (process.env.NODE_ENV === "production") {
+    console.error(
+      `FATAL: OIDC JWKS file not found at '${oidcJwksPath}'. From the repository root, run ./scripts/gen-oidc-jwks.sh or set OIDC_JWKS_PATH.`
+    );
+    process.exit(1);
+  } else {
+    console.warn(
+      `OIDC JWKS file not found at '${oidcJwksPath}'. wallet-as will use oidc-provider development signing keys.`
+    );
+  }
+} catch (err) {
+  console.error(`FATAL: Failed to load OIDC JWKS from '${oidcJwksPath}':`, err);
+  process.exit(1);
+}
 
 const dataStoreHost = process.env.DATA_STORE_HOST || "localhost";
 const dataStorePort = Number(process.env.DATA_STORE_PORT) || 6379;
@@ -81,6 +107,7 @@ export default {
   serviceUrl: serviceUrl,
   basePath: basePath,
   walletUrl: process.env.WALLET_URL || "http://localhost:3000",
+  oidcJwks: oidcJwks,
   dataStoreHost: dataStoreHost,
   dataStorePort: dataStorePort,
   dataStorePassword: dataStorePassword,
