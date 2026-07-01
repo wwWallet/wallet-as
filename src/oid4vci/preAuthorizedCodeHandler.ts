@@ -1,6 +1,6 @@
 import { calculateJwkThumbprint } from 'jose';
 import { errors } from 'oidc-provider';
-import { consumePreAuthorizedCode, PreAuthorizedCodeStoreItem } from './services/preAuthorizedCodeService';
+import { consumePreAuthorizedCode, PreAuthorizedCodeStoreItem } from '../services/preAuthorizedCodeService';
 
 export default async function preAuthorizedCodeHandler(ctx: any) {
 

@@ -15,7 +15,7 @@ import {
 } from "./stores/issuerStateStore";
 import { dataStoreClient } from "./stores/dataStoreClient";
 import { createOidcValkeyAdapter } from "./stores/OidcValkeyAdapter";
-import preAuthorizedCodeHandler from "./preAuthorizedCodeHandler";
+import preAuthorizedCodeHandler from "./oid4vci/preAuthorizedCodeHandler";
 
 export function createApp() {
   const app = express();
