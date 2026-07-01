@@ -33,18 +33,29 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 
 	const accountId = grant.account_id;
 	if (!accountId) {
-		throw new errors.AccessDenied('invalid account_id')
+		throw new errors.AccessDenied('invalid account_id');
 	}
+
+	const { jwk } = decodeHeader(ctx.request.header.dpop);
+	const jkt = await calculateJwkThumbprint(jwk);
+
+	const oidcGrant = new provider.Grant({
+		accountId,
+		clientId: client.clientId,
+	});
+
+	oidcGrant.addOIDCScope(scope);
+
+	const grantId = await oidcGrant.save();
 
 	const token = new provider.AccessToken({
 		accountId,
 		client,
+		grantId,
 		scope,
 		gty: 'urn:ietf:params:oauth:grant-type:pre-authorized_code',
 	});
 
-	const { jwk } = decodeHeader(ctx.request.header.dpop);
-	const jkt = await calculateJwkThumbprint(jwk);
 	token.setThumbprint('jkt', jkt);
 
 	const accessToken = await token.save();
@@ -52,8 +63,11 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 	const rt = new provider.RefreshToken({
 		accountId,
 		client,
-		scope
+		grantId,
+		scope,
 	});
+
+	rt.setThumbprint('jkt', jkt);
 
 	const refreshToken = await rt.save();
 
@@ -63,7 +77,6 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 		expires_in: token.expiration,
 		refresh_token: refreshToken,
 	};
-
 }
 
 function decodeHeader(jwt: string) {
@@ -73,8 +86,10 @@ function decodeHeader(jwt: string) {
 	);
 }
 
-async function validatePreAuthorizedCodeGrant(grant: PreAuthorizedCodeStoreItem, txCodeReceived: string | number ) {
-
+async function validatePreAuthorizedCodeGrant(
+	grant: PreAuthorizedCodeStoreItem,
+	txCodeReceived: string | number
+) {
 	if (!grant) {
 		throw new errors.InvalidGrant(
 			'unknown pre-authorized code',
