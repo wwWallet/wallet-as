@@ -96,7 +96,14 @@ export default (
                 issuerMetadata = await issuerMetadataResponse.json();
               }
               if (issuerMetadata) {
-                credentialConfigs = String(params.scope ?? "")
+
+                const vctScope = String(params.scope || "")
+                  .trim()
+                  .split(/\s+/)
+                  .filter(scope => scope !== "openid")
+                  .join(" ");
+
+                credentialConfigs = vctScope
                 .split(" ")
                 .filter(Boolean)
                 .map((scope: string) => {
