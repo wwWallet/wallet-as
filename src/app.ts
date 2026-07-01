@@ -47,7 +47,11 @@ export function createApp() {
   const provider = new oidc.Provider(config.serviceUrl, {
     adapter: createOidcValkeyAdapter(dataStoreClient),
     clients: oidClients,
-
+    discovery: {
+      ...(config.preAuthorizedCredentialIssuance ? {
+        "pre-authorized_grant_anonymous_access_supported": true,
+      } : {}),
+    },
     scopes: config.scopes,
     interactions: {
       policy: interactionPolicies(),
