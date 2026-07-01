@@ -51,24 +51,19 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 
 	const accessToken = await token.save();
 
-	let refreshToken;
-	if (grant.allow_refresh_token) {
-		const rt = new provider.RefreshToken({
-			accountId,
-			client,
-			scope
-		});
+	const rt = new provider.RefreshToken({
+		accountId,
+		client,
+		scope
+	});
 
-		refreshToken = await rt.save();
-	}
+	const refreshToken = await rt.save();
 
 	ctx.body = {
 		access_token: accessToken,
 		token_type: 'Bearer',
 		expires_in: token.expiration,
-		...(refreshToken && {
-			refresh_token: refreshToken,
-		}),
+		refresh_token: refreshToken,
 	};
 
 }

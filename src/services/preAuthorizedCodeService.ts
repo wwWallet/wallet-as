@@ -6,7 +6,6 @@ export interface PreAuthorizedCodeStoreItem extends PreAuthorizedCodeGrant {
 	tx_value?: string | number;
     credential_configuration_ids?: string[]
     account_id?: string,
-    allow_refresh_token?: boolean
 };
 
 export async function consumePreAuthorizedCode(code: string, token?: string | number): Promise<PreAuthorizedCodeStoreItem> {
