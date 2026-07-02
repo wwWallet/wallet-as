@@ -361,6 +361,44 @@ describe("app integration", () => {
     });
   });
 
+  describe("pre-authorized issuer login", () => {
+    const originalEnv = process.env;
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    it("auto-approves consent when the authorization request is marked pre-authorized", async () => {
+      process.env = {
+        ...originalEnv,
+        AUTHENTICATOR: "user-pass-pid",
+        USER_PASS_PID_DEMO_USERNAME: "test",
+        USER_PASS_PID_DEMO_PASSWORD: "test",
+        SCOPES: "openid,diploma",
+        PRE_AUTHORIZED_CONSENT_CLIENT_IDS: "test",
+      };
+
+      vi.resetModules();
+      const { createApp: createPreAuthorizedApp } = await import("../../src/app");
+      const { app: preAuthorizedApp } = createPreAuthorizedApp();
+      const agent = request.agent(preAuthorizedApp);
+
+      const tokenResponse = await issueAccessToken(
+        agent,
+        {
+          scope: "openid diploma",
+          state: JSON.stringify({
+            credential_configuration_id: "diploma"
+          }),
+        },
+        { confirmConsent: false }
+      );
+
+      expect(tokenResponse.accessToken).toBeTruthy();
+      expect(tokenResponse.refreshToken).toBeTruthy();
+    });
+  });
+
   describe("application restart", () => {
     const originalEnv = process.env;
 
@@ -611,7 +649,8 @@ function tryExtractAuthCode(location: string, redirectUri: string) {
 
 async function issueAccessToken(
   agent: request.SuperAgentTest,
-  authQuery: Record<string, string> = {}
+  authQuery: Record<string, string> = {},
+  options: { confirmConsent?: boolean } = {}
 ) {
   const authRes = await agent
     .get("/auth")
@@ -630,6 +669,7 @@ async function issueAccessToken(
 
   let interactionPage = await followRedirectsToOk(agent, authLocation as string);
   let consentUid = extractInteractionUid(interactionPage.location);
+  let redirectLocation: string | undefined;
 
   if (interactionPage.response.text.includes('name="login"')) {
     const loginRes = await agent
@@ -640,24 +680,32 @@ async function issueAccessToken(
 
     const consentLocation = loginRes.headers.location;
     expect(consentLocation).toBeTruthy();
-    interactionPage = await followRedirectsToOk(
-      agent,
-      consentLocation as string
-    );
-    consentUid = extractInteractionUid(interactionPage.location);
+    if (options.confirmConsent === false) {
+      redirectLocation = consentLocation as string;
+    } else {
+      interactionPage = await followRedirectsToOk(
+        agent,
+        consentLocation as string
+      );
+      consentUid = extractInteractionUid(interactionPage.location);
+    }
   }
 
-  const consentRes = await agent
-    .post(`/interaction/${consentUid}/confirm`)
-    .type("form")
-    .send({})
-    .expect((res) => {
-      if (res.status !== 302 && res.status !== 303) {
-        throw new Error(`Unexpected status ${res.status}`);
-      }
-    });
-
-  const redirectLocation = consentRes.headers.location;
+  if (options.confirmConsent !== false) {
+    const consentRes = await agent
+      .post(`/interaction/${consentUid}/confirm`)
+      .type("form")
+      .send({})
+      .expect((res) => {
+        if (res.status !== 302 && res.status !== 303) {
+          throw new Error(`Unexpected status ${res.status}`);
+        }
+      });
+    redirectLocation = consentRes.headers.location;
+  }
+  if (!redirectLocation) {
+    redirectLocation = interactionPage.location;
+  }
   expect(redirectLocation).toBeTruthy();
   const code = await followRedirectsToAuthCode(
     agent,
