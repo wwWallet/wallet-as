@@ -37,6 +37,7 @@ describe("config", () => {
       INTROSPECTION_CLIENT_SECRET: "secret-a",
       BASE_PATH: "as",
       AUTHORIZATION_CODE_TTL: "90",
+      PRE_AUTHORIZED_CONSENT_CLIENT_IDS: "wallet_issuer, test-client",
     };
 
     vi.resetModules();
@@ -47,6 +48,7 @@ describe("config", () => {
     expect(config.basePath).toBe("/as");
     expect(config.authBrokerRedirectUri).toBe("http://localhost:6060/interaction/authBroker/callback");
     expect(config.ttl.authorizationCode).toBe(90);
+    expect(config.preAuthorizedConsentClientIds).toEqual(["wallet_issuer", "test-client"]);
 
     process.env = originalEnv;
   });

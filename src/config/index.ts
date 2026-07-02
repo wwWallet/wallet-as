@@ -51,6 +51,10 @@ const authBrokerSkipLogout =
 const authenticator = process.env.AUTHENTICATOR?.trim() || "user-pass-pid";
 const authBrokerConfigured = Boolean(authBrokerProviderUrl && authBrokerClientId);
 const authBrokerRequestStoreTtlMs = Number(process.env.AUTH_BROKER_REQUEST_STORE_TTL_MS || 10 * 60 * 1000);
+const preAuthorizedConsentClientIds = (process.env.PRE_AUTHORIZED_CONSENT_CLIENT_IDS || "wallet_issuer")
+  .split(",")
+  .map((clientId) => clientId.trim())
+  .filter(Boolean);
 
 const clientMetadataSchema = z.looseObject({
   client_id: z.string().trim().min(1),
@@ -108,6 +112,7 @@ export default {
   authBrokerRequestStoreTtlMs: authBrokerRequestStoreTtlMs,
   authBrokerConfigured: authBrokerConfigured,
   authenticator: authenticator,
+  preAuthorizedConsentClientIds: preAuthorizedConsentClientIds,
   preAuthorizedCredentialIssuance: process.env.PRE_AUTHORIZED_CREDENTIAL_ISSUANCE === 'true' || false,
   preAuthorizedCodeApiUrl: process.env.PRE_AUTHORIZED_CODE_API_URL || "",
   preAuthorizedCodeApiBearerToken: process.env.PRE_AUTHORIZED_CODE_API_BEARER_TOKEN || ""
