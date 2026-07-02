@@ -34,6 +34,7 @@ describe("pre-authorized code grant", () => {
       allow_refresh_token: false,
       tx_code: true,
       tx_value: "12345",
+      scope: "openid",
     });
     mockCalculateJwkThumbprint.mockResolvedValue("thumbprint");
 
