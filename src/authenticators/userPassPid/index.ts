@@ -13,8 +13,7 @@ const createAuthenticator = (): Authenticator => ({
   shouldAutoApproveConsent: (interaction) => {
     try {
       return interaction.prompt.name === "consent" &&
-        config.preAuthorizedConsentClientIds.includes(String(interaction.params.client_id)) &&
-        JSON.parse(String(interaction.params.state)).pre_authorized === true;
+        config.preAuthorizedConsentClientIds.includes(String(interaction.params.client_id))
     } catch {
       return false;
     }

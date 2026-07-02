@@ -388,8 +388,7 @@ describe("app integration", () => {
         {
           scope: "openid diploma",
           state: JSON.stringify({
-            credential_configuration_id: "diploma",
-            pre_authorized: true,
+            credential_configuration_id: "diploma"
           }),
         },
         { confirmConsent: false }
