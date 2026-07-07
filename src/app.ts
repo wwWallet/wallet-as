@@ -55,6 +55,8 @@ export function createApp() {
       ...(config.preAuthorizedCredentialIssuance ? {
         "pre-authorized_grant_anonymous_access_supported": true,
       } : {}),
+      client_attestation_signing_alg_values_supported: ['ES256'],
+      client_attestation_pop_signing_alg_values_supported: ['ES256']
     },
     scopes: config.scopes,
     interactions: {
@@ -164,10 +166,6 @@ export function createApp() {
       'attest_jwt_client_auth' as any,  // Attestation-based client authentication (ABCA) method is not supported by latest @types/oidc-provider yet.
       'none'
     ],
-    discovery: {
-      client_attestation_signing_alg_values_supported: ['ES256'],
-      client_attestation_pop_signing_alg_values_supported: ['ES256']
-    },
     extraParams: ['issuer_state'],
     async extraTokenClaims(ctx, _token) {
       const issuerState = await consumeIssuerStateForAuthorizationCode(
