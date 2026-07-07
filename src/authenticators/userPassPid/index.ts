@@ -10,6 +10,14 @@ const createAuthenticator = (): Authenticator => ({
     }
     return `${config.basePath}/interaction/${interaction.uid}`;
   },
+  shouldAutoApproveConsent: (interaction) => {
+    try {
+      return interaction.prompt.name === "consent" &&
+        config.preAuthorizedConsentClientIds.includes(String(interaction.params.client_id))
+    } catch {
+      return false;
+    }
+  },
   registerRoutes: registerUserPassPidRoutes,
 });
 

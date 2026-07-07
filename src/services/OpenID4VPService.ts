@@ -112,7 +112,7 @@ export class OpenID4VPService {
         throw new Error("Could not extract kid");
       }
 
-      const rpStateResult = await this.openid4vpClient.handleResponseJARM(ctx.req.body.response, kid);
+      const rpStateResult = await this.openid4vpClient.handleEncryptedAuthorizationResponse(ctx.req.body.response, kid);
       if (!rpStateResult.ok) {
         const { error, error_description } = rpStateResult;
         if (error === OpenID4VPClientErrors.JWEDecryptionFailure) {

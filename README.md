@@ -27,6 +27,7 @@ Environment variables and how they are used:
 | --- | --- | --- |
 | `SERVICE_URL` | Full external URL for the AS (scheme/host and optional path prefix). | `http://localhost:6060` if unset. Example: If deployed under `/as`, set it to `https://issuer.example.com/as`. |
 | `WALLET_URL` | Redirect URI registered for the wallet client. | `http://localhost:3000` if unset. |
+| `OIDC_JWKS_PATH` | Optional override for the OIDC provider signing JWKS path used for ID tokens and JWT authorization responses. | Defaults to `./keys/oidc.jwks.json`|
 | `INTROSPECTION_CLIENT` | Client ID allowed to introspect tokens. | If set with `INTROSPECTION_CLIENT_SECRET`, an extra client is registered. |
 | `INTROSPECTION_CLIENT_SECRET` | Secret for the introspection client. | Required alongside `INTROSPECTION_CLIENT`. |
 | `SCOPES` | Comma-separated list of supported scopes. | Split by `,` and passed to OIDC provider `scopes`. |
