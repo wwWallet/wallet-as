@@ -10,7 +10,6 @@ import { interactionPolicies } from "./policies/interactionPolicies";
 import { issueRefreshToken } from "./policies/issueRefreshToken";
 import { loadAuthenticator } from "./authenticators";
 import { randomBytes } from 'crypto';
-import { exportJWK, importSPKI } from "jose";
 import {
   consumeIssuerStateForAuthorizationCode,
   saveIssuerStateForAuthorizationCode,
@@ -18,6 +17,10 @@ import {
 import { dataStoreClient } from "./stores/dataStoreClient";
 import { createOidcValkeyAdapter } from "./stores/OidcValkeyAdapter";
 import preAuthorizedCodeHandler from "./oid4vci/preAuthorizedCodeHandler";
+import {
+  assertAttestationJwtAndPop,
+  getAttestationSignaturePublicKey,
+} from "./services/attestationBasedClientAuthenticationService";
 
 export function createApp() {
   const app = express();
@@ -50,13 +53,21 @@ export function createApp() {
     adapter: createOidcValkeyAdapter(dataStoreClient),
     clients: oidClients,
     jwks: config.oidcJwks,
+    enabledJWA: {
+      attestSigningAlgValues: [
+        ...new Set([
+          ...config.abca.clientAttestationSigningAlgs,
+          ...config.abca.clientAttestationPopSigningAlgs,
+        ]),
+      ],
+    } as any,
 
     discovery: {
       ...(config.preAuthorizedCredentialIssuance ? {
         "pre-authorized_grant_anonymous_access_supported": true,
       } : {}),
-      client_attestation_signing_alg_values_supported: ['ES256'],
-      client_attestation_pop_signing_alg_values_supported: ['ES256']
+      client_attestation_signing_alg_values_supported: config.abca.clientAttestationSigningAlgs,
+      client_attestation_pop_signing_alg_values_supported: config.abca.clientAttestationPopSigningAlgs
     },
     scopes: config.scopes,
     interactions: {
@@ -126,30 +137,8 @@ export function createApp() {
         enabled: true,
         challengeSecret: randomBytes(32),
         ack: 'draft-06',
-        async getAttestationSignaturePublicKey(_ctx: any, iss: any, _header: any, _client: any) {
-          if (!Object.keys(config.trustedClientAttesters).includes(iss)) {
-            throw new Error('unknown attester');
-          }
-
-          return (
-            await exportJWK(
-              await importSPKI(
-                config.trustedClientAttesters[iss],
-                'ES256'
-              )
-            )
-          );
-        },
-
-        async assertAttestationJwtAndPop(
-          _ctx: any,
-          _attestation: any,
-          pop: any,
-        ) {
-          if (!pop.payload.cnf) {
-            throw new Error('missing cnf');
-          }
-        },
+        getAttestationSignaturePublicKey,
+        assertAttestationJwtAndPop,
       },
     },
     issueRefreshToken: issueRefreshToken,

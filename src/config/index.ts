@@ -96,6 +96,14 @@ const preAuthorizedConsentClientIds = (process.env.PRE_AUTHORIZED_CONSENT_CLIENT
   .split(",")
   .map((clientId) => clientId.trim())
   .filter(Boolean);
+const clientAttestationSigningAlgs = (process.env.CLIENT_ATTESTATION_SIGNING_ALGS || "ES256")
+  .split(",")
+  .map((alg) => alg.trim())
+  .filter(Boolean);
+const clientAttestationPopSigningAlgs = (process.env.CLIENT_ATTESTATION_POP_SIGNING_ALGS || "ES256")
+  .split(",")
+  .map((alg) => alg.trim())
+  .filter(Boolean);
 
 const clientMetadataSchema = z.looseObject({
   client_id: z.string().trim().min(1),
@@ -138,6 +146,13 @@ export default {
     accessToken: Number(process.env.ACCESS_TOKEN_TTL) || 30,
     refreshToken: Number(process.env.REFRESH_TOKEN_TTL) || 2592000,
     authorizationCode: Number(process.env.AUTHORIZATION_CODE_TTL) || 60,
+  },
+  abca: {
+    clientAttestationSigningAlgs: clientAttestationSigningAlgs,
+    clientAttestationPopSigningAlgs: clientAttestationPopSigningAlgs,
+    clientAttestationPopMaxAge: Number(process.env.CLIENT_ATTESTATION_POP_MAX_AGE) || 5 * 60,
+    clientAttestationMaxAge: Number(process.env.CLIENT_ATTESTATION_MAX_AGE) || 24 * 60 * 60,
+    clientAttestationClockTolerance: Number(process.env.CLIENT_ATTESTATION_CLOCK_TOLERANCE) || 60,
   },
   demoUsername: process.env.USER_PASS_PID_DEMO_USERNAME || null,
   demoPassword: process.env.USER_PASS_PID_DEMO_PASSWORD || null,
