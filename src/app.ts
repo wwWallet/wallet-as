@@ -54,6 +54,9 @@ export function createApp() {
         "pre-authorized_grant_anonymous_access_supported": true,
       } : {}),
     },
+    enabledJWA: {
+      dPoPSigningAlgValues: ["ES256"],
+    },
     scopes: config.scopes,
     interactions: {
       policy: interactionPolicies(),
@@ -78,6 +81,9 @@ export function createApp() {
         enabled: true,
       },
       pushedAuthorizationRequests: {
+        enabled: true,
+      },
+      dPoP: {
         enabled: true,
       },
       resourceIndicators: {
