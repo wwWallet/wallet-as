@@ -60,7 +60,7 @@ try {
       .filter((pem) => pem.trim().length > 0);
   }
 } catch (err) {
-  console.warn(`Failed to load trusted root certificates: ${err}`);
+  console.warn("Failed to load trusted root certificates:", err);
   trustedRootCertificates = [];
 }
 
