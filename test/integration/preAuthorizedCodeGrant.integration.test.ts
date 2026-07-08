@@ -1,25 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import request from "supertest";
+import { randomUUID } from "node:crypto";
+import { exportJWK, generateKeyPair, SignJWT } from "jose";
 
 const mockConsumePreAuthorizedCode = vi.fn();
-const mockCalculateJwkThumbprint = vi.fn();
 
 vi.mock("../../src/services/preAuthorizedCodeService", () => ({
   consumePreAuthorizedCode: mockConsumePreAuthorizedCode,
 }));
 
-vi.mock("jose", async () => {
-  const actual = await vi.importActual<typeof import("jose")>("jose");
-  return {
-    ...actual,
-    calculateJwkThumbprint: mockCalculateJwkThumbprint,
-  };
-});
-
 describe("pre-authorized code grant", () => {
   const originalEnv = process.env;
+  let server: Server;
+  let tokenEndpoint: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
     process.env = {
       ...originalEnv,
@@ -36,7 +33,6 @@ describe("pre-authorized code grant", () => {
       tx_value: "12345",
       scope: "openid",
     });
-    mockCalculateJwkThumbprint.mockResolvedValue("thumbprint");
 
     vi.stubGlobal(
       "fetch",
@@ -51,48 +47,74 @@ describe("pre-authorized code grant", () => {
         }),
       })
     );
+
+    const { createApp } = await import("../../src/app");
+    const { app } = createApp();
+    server = app.listen();
+    const { port } = server.address() as AddressInfo;
+    tokenEndpoint = `http://127.0.0.1:${port}/token`;
   });
 
   afterEach(() => {
+    server?.close();
     process.env = originalEnv;
     vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
 
   it("issues an access token for a valid pre-authorized grant request", async () => {
-    const { createApp } = await import("../../src/app");
-    const { app } = createApp();
-
-    const res = await request(app)
-      .post("/token")
-      .type("form")
-      .set("DPoP", "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0")
-      .send({
-        grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
-        "pre-authorized_code": "test-code",
-        tx_code: "12345",
-      });
+    const res = await requestPreAuthorizedToken({
+      "pre-authorized_code": "test-code",
+      tx_code: "12345",
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.access_token).toBeDefined();
-    expect(res.body.token_type).toBe("Bearer");
+    expect(res.body.token_type).toBe("DPoP");
+    expect(res.body.refresh_token).toBeUndefined();
     expect(mockConsumePreAuthorizedCode).toHaveBeenCalledWith("test-code", "12345");
   });
 
   it("passes the pre-authorized code and transaction code to the issuer API", async () => {
-    const { createApp } = await import("../../src/app");
-    const { app } = createApp();
-
-    await request(app)
-      .post("/token")
-      .type("form")
-      .set("DPoP", "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0")
-      .send({
-        grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
-        "pre-authorized_code": "another-code",
-        tx_code: "12345",
-      });
+    await requestPreAuthorizedToken({
+      "pre-authorized_code": "another-code",
+      tx_code: "12345",
+    });
 
     expect(mockConsumePreAuthorizedCode).toHaveBeenLastCalledWith("another-code", "12345");
   });
+
+  async function requestPreAuthorizedToken(params: {
+    "pre-authorized_code": string;
+    tx_code?: string;
+  }) {
+    const dpop = await createDpopProof(tokenEndpoint);
+
+    return request(server)
+      .post("/token")
+      .type("form")
+      .set("DPoP", dpop)
+      .send({
+        grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+        ...params,
+      });
+  }
 });
+
+async function createDpopProof(htu: string) {
+  const { privateKey, publicKey } = await generateKeyPair("ES256", { extractable: true });
+  const publicJwk = await exportJWK(publicKey);
+
+  return new SignJWT({
+    htm: "POST",
+    htu,
+    jti: randomUUID(),
+  })
+    .setProtectedHeader({
+      alg: "ES256",
+      typ: "dpop+jwt",
+      jwk: publicJwk,
+    })
+    .setIssuedAt()
+    .sign(privateKey);
+}
