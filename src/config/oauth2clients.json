@@ -25,7 +25,7 @@
     },
     {
         "client_id": "1233",
-        "token_endpoint_auth_method": "attest_jwt_client_auth",
+        "token_endpoint_auth_method": "none",
         "redirect_uris": [
             "http://localhost:3000"
         ],
@@ -62,5 +62,18 @@
         ],
         "token_endpoint_auth_method": "client_secret_basic",
         "logo_uri": "https://raw.githubusercontent.com/wwWallet/wallet-frontend/master/branding/default/logo/logo_dark.svg"
+    },
+    {
+        "client_id": "wallet-client",
+        "client_name": "Headless Wallet Client",
+        "token_endpoint_auth_method": "attest_jwt_client_auth",
+        "grant_types": [
+            "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+            "refresh_token"
+        ],
+        "response_types": [],
+        "redirect_uris": [
+            "http://localhost"
+        ]
     }
 ]

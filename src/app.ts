@@ -60,6 +60,7 @@ export function createApp() {
           ...config.abca.clientAttestationPopSigningAlgs,
         ]),
       ],
+      dPoPSigningAlgValues: ["ES256"],
     } as any,
 
     discovery: {
@@ -68,9 +69,6 @@ export function createApp() {
       } : {}),
       client_attestation_signing_alg_values_supported: config.abca.clientAttestationSigningAlgs,
       client_attestation_pop_signing_alg_values_supported: config.abca.clientAttestationPopSigningAlgs
-    },
-    enabledJWA: {
-      dPoPSigningAlgValues: ["ES256"],
     },
     scopes: config.scopes,
     interactions: {
