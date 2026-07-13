@@ -26,6 +26,8 @@ describe("pre-authorized code grant", () => {
       PRE_AUTHORIZED_CREDENTIAL_ISSUANCE: "true",
       PRE_AUTHORIZED_CODE_API_URL: "http://issuer.test",
       PRE_AUTHORIZED_CODE_API_BEARER_TOKEN: "test-token",
+      INTROSPECTION_CLIENT: "claims_context_test_introspector",
+      INTROSPECTION_CLIENT_SECRET: "test",
     };
 
     mockConsumePreAuthorizedCode.mockResolvedValue({
@@ -94,5 +96,41 @@ describe("pre-authorized code grant", () => {
       });
 
     expect(mockConsumePreAuthorizedCode).toHaveBeenLastCalledWith("another-code", "12345");
+  });
+
+  it("exposes claims_context when the resulting access token is introspected", async () => {
+    mockConsumePreAuthorizedCode.mockResolvedValueOnce({
+      credential_configuration_ids: ["test-credential"],
+      account_id: "user-123",
+      allow_refresh_token: false,
+      tx_code: true,
+      tx_value: "12345",
+      scope: "openid",
+      claims_context: "opaque-transaction-reference",
+    });
+    const { createApp } = await import("../../src/app");
+    const { app } = createApp();
+
+    const tokenResponse = await request(app)
+      .post("/token")
+      .type("form")
+      .set("DPoP", "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0")
+      .send({
+        grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+        "pre-authorized_code": "claims-context-code",
+        tx_code: "12345",
+      });
+
+    const introspectionResponse = await request(app)
+      .post("/token/introspection")
+      .auth("claims_context_test_introspector", "test")
+      .type("form")
+      .send({ token: tokenResponse.body.access_token });
+
+    expect(introspectionResponse.status).toBe(200);
+    expect(introspectionResponse.body).toMatchObject({
+      active: true,
+      claims_context: "opaque-transaction-reference",
+    });
   });
 });

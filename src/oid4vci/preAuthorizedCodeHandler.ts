@@ -41,6 +41,7 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 		client,
 		scope,
 		gty: 'urn:ietf:params:oauth:grant-type:pre-authorized_code',
+		extra: grant.claims_context ? { claims_context: grant.claims_context } : undefined,
 	});
 
 	const { jwk } = decodeHeader(ctx.request.header.dpop);

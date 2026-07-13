@@ -126,7 +126,11 @@ export function createApp() {
       AuthorizationCode: config.ttl.authorizationCode,
     },
     extraParams: ['issuer_state'],
-    async extraTokenClaims(ctx, _token) {
+    async extraTokenClaims(ctx, token) {
+      const claimsContext = (token as any).extra?.claims_context;
+      if (claimsContext) {
+        return { claims_context: claimsContext };
+      }
       const issuerState = await consumeIssuerStateForAuthorizationCode(
         (ctx.oidc.entities.AuthorizationCode as any)?.jti
       );
