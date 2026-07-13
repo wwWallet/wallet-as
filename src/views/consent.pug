@@ -35,7 +35,7 @@ html(lang="en")
 
           if dataUri
             .consent__credential-preview
-              img.consent__credential-img(src=dataUri alt="Credential preview")
+              img.consent__credential-img(src=dataUri alt="Credential preview" onerror="this.onerror=null;this.src='#{fallbackDataUri}'")
 
           if details && details.scopes
             ul.consent__permissions

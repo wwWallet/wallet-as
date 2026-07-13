@@ -4,6 +4,11 @@ import type { TypeMetadata as TypeMetadataSchema } from "wallet-common";
 const sdJwtVcRenderer = CredentialRenderingService();
 const customRenderer = CustomCredentialSvg({ httpClient: defaultHttpClient });
 
+// Keep the consent screen useful when a remote metadata image cannot be loaded.
+// This asset is served by Express from wallet-as/public.
+export const CONSENT_PREVIEW_FALLBACK_DATA_URI =
+    "/images/fallback-credential.svg";
+
 export async function getConsentPreviewDataUri(opts: {
     vctEngine: any;
     vct?: string | null;
@@ -31,5 +36,5 @@ export async function getConsentPreviewDataUri(opts: {
     });
 
     const dataUri = await resolve(undefined, langs);
-    return { dataUri };
+    return { dataUri: dataUri || CONSENT_PREVIEW_FALLBACK_DATA_URI };
 }

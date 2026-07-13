@@ -2,7 +2,7 @@ import Express from "express";
 import Provider from "oidc-provider";
 import IAccountSource from "../interfaces/IAccountSource";
 import { createVctProviderFromEnv } from "../util/vctResolution";
-import { getConsentPreviewDataUri } from "../util/consentPreview";
+import { CONSENT_PREVIEW_FALLBACK_DATA_URI, getConsentPreviewDataUri } from "../util/consentPreview";
 import { Authenticator } from "../authenticators";
 import { prependToPath } from "wallet-common";
 
@@ -136,12 +136,18 @@ export default (
             }
 
             const cfg0 = credentialConfigs[0];
-            const { dataUri } = await getConsentPreviewDataUri({
-              vctEngine,
-              vct: cfg0?.vct,
-              issuerDisplayArray: cfg0?.display,
-              langs: ["en-US"],
-            });
+            let dataUri = CONSENT_PREVIEW_FALLBACK_DATA_URI;
+            try {
+              const preview = await getConsentPreviewDataUri({
+                vctEngine,
+                vct: cfg0?.vct,
+                issuerDisplayArray: cfg0?.display,
+                langs: ["en-US"],
+              });
+              dataUri = preview.dataUri || CONSENT_PREVIEW_FALLBACK_DATA_URI;
+            } catch (error) {
+              console.warn('Could not generate AS consent credential preview:', error);
+            }
 
             return res.render('consent', {
               client,
@@ -149,7 +155,8 @@ export default (
               details: prompt.details,
               params,
               credentialConfigs,
-              dataUri
+              dataUri,
+              fallbackDataUri: CONSENT_PREVIEW_FALLBACK_DATA_URI
             });
           }
           default:
