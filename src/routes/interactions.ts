@@ -6,6 +6,8 @@ import { getConsentPreviewDataUri } from "../util/consentPreview";
 import { Authenticator } from "../authenticators";
 import { prependToPath } from "wallet-common";
 
+export const DATA_URI_FALLBACK = "/images/fallback-credential.svg";
+
 const vctEngine = createVctProviderFromEnv();
 
 export default (
@@ -136,12 +138,18 @@ export default (
             }
 
             const cfg0 = credentialConfigs[0];
-            const { dataUri } = await getConsentPreviewDataUri({
-              vctEngine,
-              vct: cfg0?.vct,
-              issuerDisplayArray: cfg0?.display,
-              langs: ["en-US"],
-            });
+            let dataUri = "/images/fallback-credential.svg";
+            try {
+              const preview = await getConsentPreviewDataUri({
+                vctEngine,
+                vct: cfg0?.vct,
+                issuerDisplayArray: cfg0?.display,
+                langs: ["en-US"],
+              });
+              dataUri = preview.dataUri || DATA_URI_FALLBACK;
+            } catch (error) {
+              console.warn('Could not generate AS consent credential preview:', error);
+            }
 
             return res.render('consent', {
               client,
@@ -149,7 +157,8 @@ export default (
               details: prompt.details,
               params,
               credentialConfigs,
-              dataUri
+              dataUri,
+              fallbackDataUri: DATA_URI_FALLBACK
             });
           }
           default:
