@@ -157,13 +157,16 @@ export function createApp() {
     extraParams: ['issuer_state'],
     async extraTokenClaims(ctx, _token) {
       const issuerState = await consumeIssuerStateForAuthorizationCode(
-        (ctx.oidc.entities.AuthorizationCode as any)?.jti
+        ctx.oidc.entities.AuthorizationCode?.jti
       );
       return issuerState ? { issuer_state: issuerState } : undefined;
     },
   });
   provider.on("authorization_code.saved", (authorizationCode) => {
-    const issuerState = (oidc.Provider.ctx?.oidc.params as any)?.issuer_state;
+    const issuerStateValue = oidc.Provider.ctx?.oidc.params?.issuer_state;
+    const issuerState = typeof issuerStateValue === "string"
+      ? issuerStateValue
+      : undefined;
     void saveIssuerStateForAuthorizationCode(
       authorizationCode.jti,
       issuerState

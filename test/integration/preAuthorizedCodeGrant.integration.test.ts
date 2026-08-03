@@ -29,10 +29,14 @@ describe("pre-authorized code grant", () => {
     };
 
     mockConsumePreAuthorizedCode.mockResolvedValue({
+      "pre-authorized_code": "test-code",
       credential_configuration_ids: ["test-credential"],
       account_id: "user-123",
       allow_refresh_token: false,
-      tx_code: true,
+      tx_code: {
+        input_mode: "numeric",
+        length: 5,
+      },
       tx_value: "12345",
       scope: "openid",
     });
@@ -94,5 +98,29 @@ describe("pre-authorized code grant", () => {
       });
 
     expect(mockConsumePreAuthorizedCode).toHaveBeenLastCalledWith("another-code", "12345");
+  });
+
+  it("returns an OAuth error from the pre-authorized code API", async () => {
+    mockConsumePreAuthorizedCode.mockResolvedValueOnce({
+      error: "invalid_grant",
+      error_description: "The pre-authorized code is invalid",
+    });
+
+    const { createApp } = await import("../../src/app");
+    const { app } = createApp();
+
+    const res = await request(app)
+      .post("/token")
+      .type("form")
+      .set("DPoP", "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0")
+      .send({
+        grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+        "pre-authorized-code": "invalid-code",
+        tx_code: "12345",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("invalid_request");
+    expect(res.body.error_description).toBe("invalid_grant");
   });
 });

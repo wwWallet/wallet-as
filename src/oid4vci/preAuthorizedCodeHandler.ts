@@ -2,7 +2,7 @@ import { calculateJwkThumbprint } from 'jose';
 import { errors } from 'oidc-provider';
 import { consumePreAuthorizedCode, PreAuthorizedCodeStoreItem } from '../services/preAuthorizedCodeService';
 
-export default async function preAuthorizedCodeHandler(ctx: any) {
+export default async function preAuthorizedCodeHandler(ctx: any): Promise<void> {
 
 	const {
 		provider,
@@ -14,9 +14,9 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 
 	const grant = await consumePreAuthorizedCode(pre_authorized_code, tx_code);
 
-	if((grant as any).error) {
-		console.log(`Error consuming pre-authorized code: ${(grant as any).error_description}`);
-		throw new errors.InvalidRequest((grant as any).error);
+	if ("error" in grant) {
+		console.log(`Error consuming pre-authorized code: ${grant.error_description}`);
+		throw new errors.InvalidRequest(grant.error);
 	}
 
 	validatePreAuthorizedCodeGrant(grant, tx_code);
