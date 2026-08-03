@@ -64,19 +64,22 @@ try {
   trustedRootCertificates = [];
 }
 
-let trustedClientAttesters: Record<string, string> = {};
+const clientAttestationTrustAnchorsDir = path.resolve(
+  process.cwd(),
+  process.env.CLIENT_ATTESTATION_TRUST_ANCHORS_DIR || "./certs",
+);
+let clientAttestationTrustAnchors: string[] = [];
 try {
-  trustedClientAttesters = Object.fromEntries(
-    Object.entries(
-      JSON.parse(process.env.TRUSTED_CLIENT_ATTESTERS ?? '{}')
-    ).map(([iss, encoded]) => [
-      iss,
-      Buffer.from(encoded as string, 'base64').toString('utf8')
-    ])
-  );
+  if (fs.existsSync(clientAttestationTrustAnchorsDir)) {
+    clientAttestationTrustAnchors = fs
+      .readdirSync(clientAttestationTrustAnchorsDir)
+      .filter((file) => file.toLowerCase().endsWith(".pem"))
+      .map((file) => fs.readFileSync(path.join(clientAttestationTrustAnchorsDir, file), "utf-8"))
+      .filter((pem) => pem.trim().length > 0);
+  }
 } catch (err) {
-  console.warn(`Failed to load trusted client attesters: ${err}`);
-  trustedClientAttesters = {};
+  console.warn("Failed to load Client Attestation trust anchors:", err);
+  clientAttestationTrustAnchors = [];
 }
 
 const authBrokerProviderUrl =
@@ -96,14 +99,34 @@ const preAuthorizedConsentClientIds = (process.env.PRE_AUTHORIZED_CONSENT_CLIENT
   .split(",")
   .map((clientId) => clientId.trim())
   .filter(Boolean);
-const clientAttestationSigningAlgs = (process.env.CLIENT_ATTESTATION_SIGNING_ALGS || "ES256")
-  .split(",")
-  .map((alg) => alg.trim())
-  .filter(Boolean);
-const clientAttestationPopSigningAlgs = (process.env.CLIENT_ATTESTATION_POP_SIGNING_ALGS || "ES256")
-  .split(",")
-  .map((alg) => alg.trim())
-  .filter(Boolean);
+
+const supportedAsymmetricSigningAlgorithms = ["ES256"] as const satisfies readonly oidc.AsymmetricSigningAlgorithm[];
+const supportedAsymmetricSigningAlgorithmSchema = z.enum(supportedAsymmetricSigningAlgorithms);
+function parseAsymmetricSigningAlgorithms(
+  value: string
+): oidc.AsymmetricSigningAlgorithm[] {
+  const algorithms = value
+    .split(",")
+    .map((algorithm) => algorithm.trim())
+    .filter(Boolean)
+    .map((algorithm) => supportedAsymmetricSigningAlgorithmSchema.parse(algorithm));
+
+  return algorithms;
+}
+
+const clientAttestationSigningAlgs = parseAsymmetricSigningAlgorithms(
+  process.env.CLIENT_ATTESTATION_SIGNING_ALGS || "ES256"
+);
+if (clientAttestationSigningAlgs.length === 0) {
+  throw new Error(`CLIENT_ATTESTATION_SIGNING_ALGS must contain at least one asymmetric signing algorithm`);
+}
+const clientAttestationPopSigningAlgs = parseAsymmetricSigningAlgorithms(
+  process.env.CLIENT_ATTESTATION_POP_SIGNING_ALGS || "ES256"
+);
+
+if (clientAttestationPopSigningAlgs.length === 0) {
+  throw new Error(`CLIENT_ATTESTATION_POP_SIGNING_ALGS must contain at least one asymmetric signing algorithm`);
+}
 
 const clientMetadataSchema = z.looseObject({
   client_id: z.string().trim().min(1),
@@ -157,6 +180,7 @@ export default {
   demoUsername: process.env.USER_PASS_PID_DEMO_USERNAME || null,
   demoPassword: process.env.USER_PASS_PID_DEMO_PASSWORD || null,
   trustedRootCertificates: trustedRootCertificates,
+  clientAttestationTrustAnchors: clientAttestationTrustAnchors,
   trustedIssuers: process.env.TRUSTED_ISSUERS
 		? process.env.TRUSTED_ISSUERS.split(',')
 		: ["http://localhost:8003/openid"],
@@ -169,7 +193,6 @@ export default {
   authBrokerRequestStoreTtlMs: authBrokerRequestStoreTtlMs,
   authBrokerConfigured: authBrokerConfigured,
   authenticator: authenticator,
-  trustedClientAttesters: trustedClientAttesters ?? {},
   preAuthorizedConsentClientIds: preAuthorizedConsentClientIds,
   preAuthorizedCredentialIssuance: process.env.PRE_AUTHORIZED_CREDENTIAL_ISSUANCE === 'true' || false,
   preAuthorizedCodeApiUrl: process.env.PRE_AUTHORIZED_CODE_API_URL || "",

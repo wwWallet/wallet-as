@@ -60,8 +60,7 @@ export function createApp() {
           ...config.abca.clientAttestationPopSigningAlgs,
         ]),
       ],
-    } as any,
-
+    },
     discovery: {
       ...(config.preAuthorizedCredentialIssuance ? {
         "pre-authorized_grant_anonymous_access_supported": true,
@@ -136,7 +135,7 @@ export function createApp() {
       attestClientAuth: {
         enabled: true,
         challengeSecret: randomBytes(32),
-        ack: 'draft-06',
+        ack: 'draft-10',
         getAttestationSignaturePublicKey,
         assertAttestationJwtAndPop,
       },
@@ -152,7 +151,7 @@ export function createApp() {
       'client_secret_jwt',
       'client_secret_post',
       'private_key_jwt',
-      'attest_jwt_client_auth' as any,  // Attestation-based client authentication (ABCA) method is not supported by latest @types/oidc-provider yet.
+      'attest_jwt_client_auth',
       'none'
     ],
     extraParams: ['issuer_state'],
