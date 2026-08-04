@@ -26,6 +26,8 @@
     {
         "client_id": "1233",
         "token_endpoint_auth_method": "attest_jwt_client_auth",
+        "dpop_bound_access_tokens": true,
+        "require_pushed_authorization_requests": true,
         "redirect_uris": [
             "http://localhost:3000"
         ],

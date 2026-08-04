@@ -2,6 +2,7 @@ import * as crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import * as oidc from "oidc-provider";
+import { calculateJwkThumbprint } from "jose";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockConfig = vi.hoisted(() => ({
@@ -22,8 +23,17 @@ import {
   getAttestationSignaturePublicKey,
 } from "../../src/services/attestationBasedClientAuthenticationService";
 
-const context = {} as oidc.KoaContextWithOIDC;
+const context = {
+  oidc: { params: {} },
+  get: vi.fn().mockReturnValue(""),
+} as unknown as oidc.KoaContextWithOIDC;
 const unusedKey = {} as crypto.webcrypto.CryptoKey;
+const clientInstanceJwk = {
+  kty: "EC",
+  crv: "P-256",
+  x: "18wHLeIgW9wVN6VD1Txgpqy2LszYkMf6J8njVAibvhM",
+  y: "-V4dS4UaLMgP_4fY4j8ir7cl1TXlFdAgcx55o7TkcSA",
+};
 
 function verificationResult(
   protectedHeader: oidc.UnknownObject,
@@ -123,7 +133,7 @@ describe("attestationBasedClientAuthenticationService", () => {
   it("accepts verified JWTs that satisfy wwWallet freshness policy", async () => {
     const attestation = verificationResult(
       { alg: "ES256" },
-      { iat: now - 60, exp: now + 300 },
+      { iat: now - 60, exp: now + 300, cnf: { jwk: clientInstanceJwk } },
     );
     const pop = verificationResult({ alg: "ES256" }, { iat: now - 10 });
 
@@ -135,7 +145,7 @@ describe("attestationBasedClientAuthenticationService", () => {
   it("rejects a PoP that exceeds the configured maximum age", async () => {
     const attestation = verificationResult(
       { alg: "ES256" },
-      { iat: now - 60, exp: now + 300 },
+      { iat: now - 60, exp: now + 300, cnf: { jwk: clientInstanceJwk } },
     );
     const pop = verificationResult({ alg: "ES256" }, { iat: now - 361 });
 
@@ -147,12 +157,63 @@ describe("attestationBasedClientAuthenticationService", () => {
   it("requests a fresh attestation when its iat is too old", async () => {
     const attestation = verificationResult(
       { alg: "ES256" },
-      { iat: now - 86461, exp: now + 300 },
+      { iat: now - 86461, exp: now + 300, cnf: { jwk: clientInstanceJwk } },
     );
     const pop = verificationResult({ alg: "ES256" }, { iat: now - 10 });
 
     await expect(
       assertAttestationJwtAndPop(context, attestation, pop),
     ).rejects.toBeInstanceOf(oidc.errors.UseFreshAttestation);
+  });
+
+  it("rejects a PAR dpop_jkt that does not match the WIA cnf key", async () => {
+    const mismatchedContext = {
+      oidc: { params: { dpop_jkt: "wrong-thumbprint" } },
+      get: vi.fn().mockReturnValue(""),
+    } as unknown as oidc.KoaContextWithOIDC;
+    const attestation = verificationResult(
+      { alg: "ES256" },
+      { iat: now - 60, exp: now + 300, cnf: { jwk: clientInstanceJwk } },
+    );
+    const pop = verificationResult({ alg: "ES256" }, { iat: now - 10 });
+
+    await expect(
+      assertAttestationJwtAndPop(mismatchedContext, attestation, pop),
+    ).rejects.toBeInstanceOf(oidc.errors.InvalidClientAttestation);
+  });
+
+  it("requires dpop_jkt for PAR client authentication", async () => {
+    const parContext = {
+      oidc: { route: "pushed_authorization_request", params: {} },
+      get: vi.fn().mockReturnValue(""),
+    } as unknown as oidc.KoaContextWithOIDC;
+    const attestation = verificationResult(
+      { alg: "ES256" },
+      { iat: now - 60, exp: now + 300, cnf: { jwk: clientInstanceJwk } },
+    );
+    const pop = verificationResult({ alg: "ES256" }, { iat: now - 10 });
+
+    await expect(
+      assertAttestationJwtAndPop(parContext, attestation, pop),
+    ).rejects.toBeInstanceOf(oidc.errors.InvalidClientAttestation);
+  });
+
+  it("reads PAR dpop_jkt from the parsed request body during client authentication", async () => {
+    const parContext = {
+      oidc: { route: "pushed_authorization_request", params: {} },
+      request: {
+        body: { dpop_jkt: await calculateJwkThumbprint(clientInstanceJwk) },
+      },
+      get: vi.fn().mockReturnValue(""),
+    } as unknown as oidc.KoaContextWithOIDC;
+    const attestation = verificationResult(
+      { alg: "ES256" },
+      { iat: now - 60, exp: now + 300, cnf: { jwk: clientInstanceJwk } },
+    );
+    const pop = verificationResult({ alg: "ES256" }, { iat: now - 10 });
+
+    await expect(
+      assertAttestationJwtAndPop(parContext, attestation, pop),
+    ).resolves.toBeUndefined();
   });
 });

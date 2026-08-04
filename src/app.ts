@@ -66,7 +66,8 @@ export function createApp() {
         "pre-authorized_grant_anonymous_access_supported": true,
       } : {}),
       client_attestation_signing_alg_values_supported: config.abca.clientAttestationSigningAlgs,
-      client_attestation_pop_signing_alg_values_supported: config.abca.clientAttestationPopSigningAlgs
+      client_attestation_pop_signing_alg_values_supported: config.abca.clientAttestationPopSigningAlgs,
+      dpop_signing_alg_values_supported: ['ES256'],
     },
     scopes: config.scopes,
     interactions: {
@@ -96,7 +97,7 @@ export function createApp() {
       },
       resourceIndicators: {
         enabled: true,
-        async getResourceServerInfo(ctx, resourceIndicator, client) {
+        async getResourceServerInfo(ctx, resourceIndicator, _client) {
 
           if (!resourceIndicator || !config.trustedIssuers.includes(resourceIndicator)) {
             throw new oidc.errors.InvalidTarget();

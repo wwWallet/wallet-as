@@ -1,6 +1,6 @@
 import * as oidc from "oidc-provider";
 import { X509Certificate } from "node:crypto";
-import { exportJWK, importX509 } from "jose";
+import { calculateJwkThumbprint, decodeProtectedHeader, exportJWK, importX509, type JWK } from "jose";
 import { verifyX5C } from "wallet-common";
 import config from "../config";
 
@@ -102,7 +102,7 @@ export async function getAttestationSignaturePublicKey(
 }
 
 export async function assertAttestationJwtAndPop(
-  _ctx: oidc.KoaContextWithOIDC,
+  ctx: oidc.KoaContextWithOIDC,
   attestation: oidc.JWTVerificationResult,
   pop: oidc.JWTVerificationResult,
 ) {
@@ -118,6 +118,39 @@ export async function assertAttestationJwtAndPop(
 
   if (!isConfiguredAlgorithm(popAlg, config.abca.clientAttestationPopSigningAlgs)) {
     throw new oidc.errors.InvalidClientAttestation('unsupported client attestation pop alg');
+  }
+
+  const attestationCnf = attestation.payload.cnf as { jwk?: JWK } | undefined;
+  const attestationJwk = attestationCnf?.jwk;
+  if (!attestationJwk || typeof attestationJwk !== 'object') {
+    throw new oidc.errors.InvalidClientAttestation('client attestation cnf.jwk missing');
+  }
+  const attestationJkt = await calculateJwkThumbprint(attestationJwk);
+  // Client authentication runs before the PAR authorization-request middleware
+  // has copied every form parameter into ctx.oidc.params. Express has already
+  // parsed the body, so use it as the authoritative fallback at this stage.
+  const requestBody = (ctx.request as { body?: Record<string, unknown> } | undefined)?.body
+    ?? (ctx.req as typeof ctx.req & { body?: Record<string, unknown> } | undefined)?.body;
+  const requestDpopJkt = ctx.oidc.params?.dpop_jkt ?? requestBody?.dpop_jkt;
+  if (ctx.oidc.route === 'pushed_authorization_request' && requestDpopJkt === undefined) {
+    throw new oidc.errors.InvalidClientAttestation('dpop_jkt is required for pushed authorization requests');
+  }
+  if (requestDpopJkt !== undefined) {
+    if (typeof requestDpopJkt !== 'string' || requestDpopJkt !== attestationJkt) {
+      throw new oidc.errors.InvalidClientAttestation('dpop_jkt does not match client attestation cnf.jwk');
+    }
+  }
+
+  const dpopProof = ctx.get?.('DPoP');
+  if (dpopProof) {
+    try {
+      const dpopJwk = decodeProtectedHeader(dpopProof).jwk;
+      if (!dpopJwk || await calculateJwkThumbprint(dpopJwk) !== attestationJkt) {
+        throw new Error('key mismatch');
+      }
+    } catch {
+      throw new oidc.errors.InvalidClientAttestation('DPoP key does not match client attestation cnf.jwk');
+    }
   }
 
   // Signature, typ, sub, exp, cnf.jwk, aud, jti, iat, replay, and challenge

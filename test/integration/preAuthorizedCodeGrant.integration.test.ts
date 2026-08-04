@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
+import * as jose from "jose";
 
-const mockConsumePreAuthorizedCode = vi.fn();
-const mockCalculateJwkThumbprint = vi.fn();
+const { mockConsumePreAuthorizedCode, mockCalculateJwkThumbprint } = vi.hoisted(() => ({
+  mockConsumePreAuthorizedCode: vi.fn(),
+  mockCalculateJwkThumbprint: vi.fn(),
+}));
 
 vi.mock("../../src/services/preAuthorizedCodeService", () => ({
   consumePreAuthorizedCode: mockConsumePreAuthorizedCode,
@@ -18,8 +21,21 @@ vi.mock("jose", async () => {
 
 describe("pre-authorized code grant", () => {
   const originalEnv = process.env;
+  let dpopPrivateKey: jose.KeyLike;
+  let dpopPublicJwk: jose.JWK;
 
-  beforeEach(() => {
+  async function createDpopProof(issuer: string) {
+    return new jose.SignJWT({
+      htm: "POST",
+      htu: `${issuer}/token`,
+    })
+      .setProtectedHeader({ alg: "ES256", typ: "dpop+jwt", jwk: dpopPublicJwk })
+      .setIssuedAt()
+      .setJti(crypto.randomUUID())
+      .sign(dpopPrivateKey);
+  }
+
+  beforeEach(async () => {
     vi.resetModules();
     process.env = {
       ...originalEnv,
@@ -41,6 +57,9 @@ describe("pre-authorized code grant", () => {
       scope: "openid",
     });
     mockCalculateJwkThumbprint.mockResolvedValue("thumbprint");
+    const { privateKey, publicKey } = await jose.generateKeyPair("ES256");
+    dpopPrivateKey = privateKey;
+    dpopPublicJwk = await jose.exportJWK(publicKey);
 
     vi.stubGlobal(
       "fetch",
@@ -65,12 +84,13 @@ describe("pre-authorized code grant", () => {
 
   it("issues an access token for a valid pre-authorized grant request", async () => {
     const { createApp } = await import("../../src/app");
-    const { app } = createApp();
+    const { app, provider } = createApp();
 
     const res = await request(app)
       .post("/token")
       .type("form")
-      .set("DPoP", "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0")
+      .set("Host", "localhost:6060")
+      .set("DPoP", await createDpopProof(provider.issuer))
       .send({
         grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
         "pre-authorized_code": "test-code",
@@ -79,18 +99,19 @@ describe("pre-authorized code grant", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.access_token).toBeDefined();
-    expect(res.body.token_type).toBe("Bearer");
+    expect(res.body.token_type).toBe("DPoP");
     expect(mockConsumePreAuthorizedCode).toHaveBeenCalledWith("test-code", "12345");
   });
 
   it("passes the pre-authorized code and transaction code to the issuer API", async () => {
     const { createApp } = await import("../../src/app");
-    const { app } = createApp();
+    const { app, provider } = createApp();
 
     await request(app)
       .post("/token")
       .type("form")
-      .set("DPoP", "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0")
+      .set("Host", "localhost:6060")
+      .set("DPoP", await createDpopProof(provider.issuer))
       .send({
         grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
         "pre-authorized_code": "another-code",
@@ -107,12 +128,13 @@ describe("pre-authorized code grant", () => {
     });
 
     const { createApp } = await import("../../src/app");
-    const { app } = createApp();
+    const { app, provider } = createApp();
 
     const res = await request(app)
       .post("/token")
       .type("form")
-      .set("DPoP", "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0")
+      .set("Host", "localhost:6060")
+      .set("DPoP", await createDpopProof(provider.issuer))
       .send({
         grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
         "pre-authorized-code": "invalid-code",
