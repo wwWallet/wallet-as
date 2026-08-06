@@ -16,7 +16,7 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.0",
-    "@types/oidc-provider": "^9.5.0",
+    "@types/oidc-provider": "^9.11.0",
     "@types/supertest": "^6.0.3",
     "supertest": "^7.1.4",
     "testcontainers": "^12.0.1",
@@ -29,7 +29,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "iovalkey": "^0.3.3",
-    "oidc-provider": "^9.6.0",
+    "oidc-provider": "^9.11.1",
     "openid-client": "^6.8.2",
     "pug": "^3.0.3",
     "wallet-common": "git+https://github.com/wwWallet/wallet-common.git#9df178665980ea7e7cbe2a441a3e6dbcec9dff6c",

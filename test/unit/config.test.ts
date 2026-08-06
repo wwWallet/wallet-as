@@ -68,6 +68,43 @@ describe("config", () => {
     process.env = originalEnv;
   });
 
+  it("parses client attestation algorithms as asymmetric signing algorithms", async () => {
+    const originalEnv = process.env;
+    process.env = {
+      ...originalEnv,
+      CLIENT_ATTESTATION_SIGNING_ALGS: " ES256 ",
+      CLIENT_ATTESTATION_POP_SIGNING_ALGS: "ES256",
+    };
+
+    try {
+      vi.resetModules();
+      const config = (await import("../../src/config")).default;
+
+      expect(config.abca.clientAttestationSigningAlgs).toEqual(["ES256"]);
+      expect(config.abca.clientAttestationPopSigningAlgs).toEqual(["ES256"]);
+    } finally {
+      process.env = originalEnv;
+    }
+  });
+
+  it("rejects unsupported client attestation signing algorithms", async () => {
+    const originalEnv = process.env;
+    process.env = {
+      ...originalEnv,
+      CLIENT_ATTESTATION_SIGNING_ALGS: "ES256,HS256",
+    };
+
+    vi.resetModules();
+
+    try {
+      await expect(import("../../src/config")).rejects.toThrow(
+        /invalid_value/,
+      );
+    } finally {
+      process.env = originalEnv;
+    }
+  });
+
   it("uses SERVICE_URL as authoritative base for default auth broker redirect uri", async () => {
     const originalEnv = process.env;
     process.env = {

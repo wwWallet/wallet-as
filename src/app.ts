@@ -9,6 +9,7 @@ import config from "./config";
 import { interactionPolicies } from "./policies/interactionPolicies";
 import { issueRefreshToken } from "./policies/issueRefreshToken";
 import { loadAuthenticator } from "./authenticators";
+import { randomBytes } from 'crypto';
 import {
   consumeIssuerStateForAuthorizationCode,
   saveIssuerStateForAuthorizationCode,
@@ -16,6 +17,10 @@ import {
 import { dataStoreClient } from "./stores/dataStoreClient";
 import { createOidcValkeyAdapter } from "./stores/OidcValkeyAdapter";
 import preAuthorizedCodeHandler from "./oid4vci/preAuthorizedCodeHandler";
+import {
+  assertAttestationJwtAndPop,
+  getAttestationSignaturePublicKey,
+} from "./services/attestationBasedClientAuthenticationService";
 
 export function createApp() {
   const app = express();
@@ -48,11 +53,21 @@ export function createApp() {
     adapter: createOidcValkeyAdapter(dataStoreClient),
     clients: oidClients,
     jwks: config.oidcJwks,
-
+    enabledJWA: {
+      attestSigningAlgValues: [
+        ...new Set([
+          ...config.abca.clientAttestationSigningAlgs,
+          ...config.abca.clientAttestationPopSigningAlgs,
+        ]),
+      ],
+    },
     discovery: {
       ...(config.preAuthorizedCredentialIssuance ? {
         "pre-authorized_grant_anonymous_access_supported": true,
       } : {}),
+      client_attestation_signing_alg_values_supported: config.abca.clientAttestationSigningAlgs,
+      client_attestation_pop_signing_alg_values_supported: config.abca.clientAttestationPopSigningAlgs,
+      dpop_signing_alg_values_supported: ['ES256'],
     },
     scopes: config.scopes,
     interactions: {
@@ -82,7 +97,7 @@ export function createApp() {
       },
       resourceIndicators: {
         enabled: true,
-        async getResourceServerInfo(ctx, resourceIndicator, client) {
+        async getResourceServerInfo(ctx, resourceIndicator, _client) {
 
           if (!resourceIndicator || !config.trustedIssuers.includes(resourceIndicator)) {
             throw new oidc.errors.InvalidTarget();
@@ -118,6 +133,13 @@ export function createApp() {
           return true;
         },
       },
+      attestClientAuth: {
+        enabled: true,
+        challengeSecret: randomBytes(32),
+        ack: 'draft-10',
+        getAttestationSignaturePublicKey,
+        assertAttestationJwtAndPop,
+      },
     },
     issueRefreshToken: issueRefreshToken,
     ttl: {
@@ -125,16 +147,27 @@ export function createApp() {
       RefreshToken: config.ttl.refreshToken,
       AuthorizationCode: config.ttl.authorizationCode,
     },
+    clientAuthMethods: [
+      'client_secret_basic',
+      'client_secret_jwt',
+      'client_secret_post',
+      'private_key_jwt',
+      'attest_jwt_client_auth',
+      'none'
+    ],
     extraParams: ['issuer_state'],
     async extraTokenClaims(ctx, _token) {
       const issuerState = await consumeIssuerStateForAuthorizationCode(
-        (ctx.oidc.entities.AuthorizationCode as any)?.jti
+        ctx.oidc.entities.AuthorizationCode?.jti
       );
       return issuerState ? { issuer_state: issuerState } : undefined;
     },
   });
   provider.on("authorization_code.saved", (authorizationCode) => {
-    const issuerState = (oidc.Provider.ctx?.oidc.params as any)?.issuer_state;
+    const issuerStateValue = oidc.Provider.ctx?.oidc.params?.issuer_state;
+    const issuerState = typeof issuerStateValue === "string"
+      ? issuerStateValue
+      : undefined;
     void saveIssuerStateForAuthorizationCode(
       authorizationCode.jti,
       issuerState
@@ -161,7 +194,18 @@ export function createApp() {
     );
 
     routesRoot.post("/token", (req, _res, next) => {
-      if (req.body?.grant_type === "urn:ietf:params:oauth:grant-type:pre-authorized_code") {
+      const hasClientAuthentication = Boolean(
+        req.body?.client_id ||
+        req.body?.client_secret ||
+        req.body?.client_assertion ||
+        req.headers.authorization ||
+        req.headers["oauth-client-attestation"]
+      );
+
+      if (
+        req.body?.grant_type === "urn:ietf:params:oauth:grant-type:pre-authorized_code" &&
+        !hasClientAuthentication
+      ) {
         req.body.client_id = "__pre-authorized_code_client__";
       }
 

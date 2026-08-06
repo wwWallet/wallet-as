@@ -64,6 +64,24 @@ try {
   trustedRootCertificates = [];
 }
 
+const clientAttestationTrustAnchorsDir = path.resolve(
+  process.cwd(),
+  process.env.CLIENT_ATTESTATION_TRUST_ANCHORS_DIR || "./certs",
+);
+let clientAttestationTrustAnchors: string[] = [];
+try {
+  if (fs.existsSync(clientAttestationTrustAnchorsDir)) {
+    clientAttestationTrustAnchors = fs
+      .readdirSync(clientAttestationTrustAnchorsDir)
+      .filter((file) => file.toLowerCase().endsWith(".pem"))
+      .map((file) => fs.readFileSync(path.join(clientAttestationTrustAnchorsDir, file), "utf-8"))
+      .filter((pem) => pem.trim().length > 0);
+  }
+} catch (err) {
+  console.warn("Failed to load Client Attestation trust anchors:", err);
+  clientAttestationTrustAnchors = [];
+}
+
 const authBrokerProviderUrl =
   process.env.AUTH_BROKER_PROVIDER_URL || process.env.AUTH_BROKER_ISSUER || null;
 const authBrokerClientId = process.env.AUTH_BROKER_CLIENT_ID || null;
@@ -81,6 +99,34 @@ const preAuthorizedConsentClientIds = (process.env.PRE_AUTHORIZED_CONSENT_CLIENT
   .split(",")
   .map((clientId) => clientId.trim())
   .filter(Boolean);
+
+const supportedAsymmetricSigningAlgorithms = ["ES256"] as const satisfies readonly oidc.AsymmetricSigningAlgorithm[];
+const supportedAsymmetricSigningAlgorithmSchema = z.enum(supportedAsymmetricSigningAlgorithms);
+function parseAsymmetricSigningAlgorithms(
+  value: string
+): oidc.AsymmetricSigningAlgorithm[] {
+  const algorithms = value
+    .split(",")
+    .map((algorithm) => algorithm.trim())
+    .filter(Boolean)
+    .map((algorithm) => supportedAsymmetricSigningAlgorithmSchema.parse(algorithm));
+
+  return algorithms;
+}
+
+const clientAttestationSigningAlgs = parseAsymmetricSigningAlgorithms(
+  process.env.CLIENT_ATTESTATION_SIGNING_ALGS || "ES256"
+);
+if (clientAttestationSigningAlgs.length === 0) {
+  throw new Error(`CLIENT_ATTESTATION_SIGNING_ALGS must contain at least one asymmetric signing algorithm`);
+}
+const clientAttestationPopSigningAlgs = parseAsymmetricSigningAlgorithms(
+  process.env.CLIENT_ATTESTATION_POP_SIGNING_ALGS || "ES256"
+);
+
+if (clientAttestationPopSigningAlgs.length === 0) {
+  throw new Error(`CLIENT_ATTESTATION_POP_SIGNING_ALGS must contain at least one asymmetric signing algorithm`);
+}
 
 const clientMetadataSchema = z.looseObject({
   client_id: z.string().trim().min(1),
@@ -124,9 +170,17 @@ export default {
     refreshToken: Number(process.env.REFRESH_TOKEN_TTL) || 2592000,
     authorizationCode: Number(process.env.AUTHORIZATION_CODE_TTL) || 60,
   },
+  abca: {
+    clientAttestationSigningAlgs: clientAttestationSigningAlgs,
+    clientAttestationPopSigningAlgs: clientAttestationPopSigningAlgs,
+    clientAttestationPopMaxAge: Number(process.env.CLIENT_ATTESTATION_POP_MAX_AGE) || 5 * 60,
+    clientAttestationMaxAge: Number(process.env.CLIENT_ATTESTATION_MAX_AGE) || 24 * 60 * 60,
+    clientAttestationClockTolerance: Number(process.env.CLIENT_ATTESTATION_CLOCK_TOLERANCE) || 60,
+  },
   demoUsername: process.env.USER_PASS_PID_DEMO_USERNAME || null,
   demoPassword: process.env.USER_PASS_PID_DEMO_PASSWORD || null,
   trustedRootCertificates: trustedRootCertificates,
+  clientAttestationTrustAnchors: clientAttestationTrustAnchors,
   trustedIssuers: process.env.TRUSTED_ISSUERS
 		? process.env.TRUSTED_ISSUERS.split(',')
 		: ["http://localhost:8003/openid"],

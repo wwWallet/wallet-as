@@ -44,6 +44,18 @@ Environment variables and how they are used:
 | `AUTH_BROKER_SCOPE` | Space-separated scopes sent to external IdP authorize endpoint by `auth-broker`. | Default: `openid profile email`. |
 | `AUTH_BROKER_REDIRECT_URI` | Redirect URI handled by wallet-as auth-broker callback route. | Default: `SERVICE_URL + /interaction/authBroker/callback`. |
 | `AUTH_BROKER_SKIP_LOGOUT` | Skip external IdP logout even if IdP supports it in metadata in `auth-broker` callback flow. | Optional; set to `true` when logout should be skipped. |
+| `CLIENT_ATTESTATION_SIGNING_ALGS` | Comma-separated allowlist for Wallet Instance Attestation JWT signatures. | Defaults to `ES256`; only algorithms explicitly supported by wallet-as are accepted. |
+| `CLIENT_ATTESTATION_POP_SIGNING_ALGS` | Comma-separated allowlist for Client Attestation PoP JWT signatures. | Defaults to `ES256`; only algorithms explicitly supported by wallet-as are accepted. |
+| `CLIENT_ATTESTATION_POP_MAX_AGE` | Maximum accepted Client Attestation PoP age in seconds. | Defaults to `300`. |
+| `CLIENT_ATTESTATION_MAX_AGE` | Maximum accepted Wallet Instance Attestation age in seconds. | Defaults to `86400`. |
+| `CLIENT_ATTESTATION_CLOCK_TOLERANCE` | Clock tolerance applied to attestation freshness checks, in seconds. | Defaults to `60`. |
+| `CLIENT_ATTESTATION_TRUST_ANCHORS_DIR` | Directory containing PEM-encoded Wallet Provider trust anchors used to validate attestation `x5c` chains. | Defaults to `./certs`; use a dedicated trust store in production. |
+
+### Wallet Provider trust anchors
+
+Client attestations must contain an `x5c` JOSE header whose leaf certificate signs the attestation. Wallet Provider trust anchors are loaded from PEM files in `CLIENT_ATTESTATION_TRUST_ANCHORS_DIR`. The complete presented chain must validate to one of these anchors before wallet-as uses the leaf public key to verify the attestation JWT.
+
+Only Wallet Provider trust anchors should be placed in this directory in production. Populate it from the applicable EUDI Wallet Provider Trusted List; do not add untrusted leaf certificates or use the certificate asserted by a client as its own trust anchor.
 
 ## Authenticators
 `wallet-as` supports explicit authenticator loading at startup.
