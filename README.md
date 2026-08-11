@@ -50,12 +50,15 @@ Environment variables and how they are used:
 | `CLIENT_ATTESTATION_MAX_AGE` | Maximum accepted Wallet Instance Attestation age in seconds. | Defaults to `86400`. |
 | `CLIENT_ATTESTATION_CLOCK_TOLERANCE` | Clock tolerance applied to attestation freshness checks, in seconds. | Defaults to `60`. |
 | `CLIENT_ATTESTATION_TRUST_ANCHORS_DIR` | Directory containing PEM-encoded Wallet Provider trust anchors used to validate attestation `x5c` chains. | Defaults to `./certs`; use a dedicated trust store in production. |
+| `CLIENT_ATTESTATION_STATUS_LIST_ALLOWED_ORIGINS` | Comma-separated allowlist of Wallet Provider origins from which WIA status lists may be fetched. | Required in production. |
+| `CLIENT_ATTESTATION_STATUS_LIST_TIMEOUT_MS` | Network timeout for status-list retrieval. | Defaults to `5000`. |
+| `CLIENT_ATTESTATION_STATUS_MINIMUM_REMAINING_SECONDS` | Minimum remaining `client_status.exp` horizon. | Defaults to 31 days (`2678400`). |
 
 ### Wallet Provider trust anchors
 
 Client attestations must contain an `x5c` JOSE header whose leaf certificate signs the attestation. Wallet Provider trust anchors are loaded from PEM files in `CLIENT_ATTESTATION_TRUST_ANCHORS_DIR`. The complete presented chain must validate to one of these anchors before wallet-as uses the leaf public key to verify the attestation JWT.
 
-Only Wallet Provider trust anchors should be placed in this directory in production. Populate it from the applicable EUDI Wallet Provider Trusted List; do not add untrusted leaf certificates or use the certificate asserted by a client as its own trust anchor.
+Only Wallet Provider trust anchors should be placed in this directory in production. Populate it from the applicable EUDI Wallet Provider Trusted List; do not add untrusted leaf certificates or use the certificate asserted by a client as its own trust anchor. WIA authentication also requires the WIA `aud` to equal this Authorization Server, validates the draft-20 status-list token, exact URI subject, signer identity, one-bit entry and index, and reserves the WIA for one PAR issuance process in Valkey. DPoP token responses include the AS-verified sender constraint as a `cnf.jkt` response extension so Wallet Units can verify the binding even when the access token is opaque.
 
 ## Authenticators
 `wallet-as` supports explicit authenticator loading at startup.

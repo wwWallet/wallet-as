@@ -124,6 +124,15 @@ const clientAttestationPopSigningAlgs = parseAsymmetricSigningAlgorithms(
   process.env.CLIENT_ATTESTATION_POP_SIGNING_ALGS || "ES256"
 );
 
+const statusListAllowedOrigins = (process.env.CLIENT_ATTESTATION_STATUS_LIST_ALLOWED_ORIGINS || "")
+  .split(',')
+  .map((value) => value.trim().replace(/\/$/, ''))
+  .filter(Boolean)
+  .map((value) => new URL(value).origin);
+if (process.env.NODE_ENV === 'production' && statusListAllowedOrigins.length === 0) {
+  throw new Error('CLIENT_ATTESTATION_STATUS_LIST_ALLOWED_ORIGINS is required in production');
+}
+
 if (clientAttestationPopSigningAlgs.length === 0) {
   throw new Error(`CLIENT_ATTESTATION_POP_SIGNING_ALGS must contain at least one asymmetric signing algorithm`);
 }
@@ -176,6 +185,9 @@ export default {
     clientAttestationPopMaxAge: Number(process.env.CLIENT_ATTESTATION_POP_MAX_AGE) || 5 * 60,
     clientAttestationMaxAge: Number(process.env.CLIENT_ATTESTATION_MAX_AGE) || 24 * 60 * 60,
     clientAttestationClockTolerance: Number(process.env.CLIENT_ATTESTATION_CLOCK_TOLERANCE) || 60,
+    statusListAllowedOrigins,
+    statusListTimeoutMilliseconds: Number(process.env.CLIENT_ATTESTATION_STATUS_LIST_TIMEOUT_MS) || 5000,
+    statusMinimumRemainingSeconds: Number(process.env.CLIENT_ATTESTATION_STATUS_MINIMUM_REMAINING_SECONDS) || 31 * 24 * 60 * 60,
   },
   demoUsername: process.env.USER_PASS_PID_DEMO_USERNAME || null,
   demoPassword: process.env.USER_PASS_PID_DEMO_PASSWORD || null,

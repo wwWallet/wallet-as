@@ -100,6 +100,7 @@ describe("pre-authorized code grant", () => {
     expect(res.status).toBe(200);
     expect(res.body.access_token).toBeDefined();
     expect(res.body.token_type).toBe("DPoP");
+    expect(res.body.cnf).toEqual({ jkt: "thumbprint" });
     expect(mockConsumePreAuthorizedCode).toHaveBeenCalledWith("test-code", "12345");
   });
 

@@ -21,6 +21,7 @@ import {
   assertAttestationJwtAndPop,
   getAttestationSignaturePublicKey,
 } from "./services/attestationBasedClientAuthenticationService";
+import { enforceWalletInstanceAttestationUse } from "./services/walletInstanceAttestationUseService";
 
 export function createApp() {
   const app = express();
@@ -138,7 +139,13 @@ export function createApp() {
         challengeSecret: randomBytes(32),
         ack: 'draft-10',
         getAttestationSignaturePublicKey,
-        assertAttestationJwtAndPop,
+        assertAttestationJwtAndPop: (ctx, attestation, pop) => assertAttestationJwtAndPop(
+          ctx,
+          attestation,
+          pop,
+          undefined,
+          enforceWalletInstanceAttestationUse,
+        ),
       },
     },
     issueRefreshToken: issueRefreshToken,
@@ -162,6 +169,19 @@ export function createApp() {
       );
       return issuerState ? { issuer_state: issuerState } : undefined;
     },
+  });
+  provider.use(async (ctx, next) => {
+    await next();
+    const accessToken = ctx.oidc.entities.AccessToken as { jkt?: unknown } | undefined;
+    if (
+      ctx.oidc.route === 'token'
+      && typeof accessToken?.jkt === 'string'
+      && typeof ctx.body === 'object'
+      && ctx.body !== null
+      && !Array.isArray(ctx.body)
+    ) {
+      (ctx.body as Record<string, unknown>).cnf = { jkt: accessToken.jkt };
+    }
   });
   provider.on("authorization_code.saved", (authorizationCode) => {
     const issuerStateValue = oidc.Provider.ctx?.oidc.params?.issuer_state;

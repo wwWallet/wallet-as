@@ -62,6 +62,7 @@ export default async function preAuthorizedCodeHandler(ctx: any): Promise<void> 
 		token_type: token.tokenType,
 		expires_in: token.expiration,
 		refresh_token: refreshToken,
+		cnf: { jkt: dpop.jkt },
 	};
 
 }
