@@ -17,6 +17,15 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 
 	validateTokenRequestParams(params);
 
+	const client = await provider.Client.find('__pre-authorized_code_client__');
+	if (!client) {
+		throw new errors.InvalidClient('Could not find pre-authorized_code client');
+	}
+
+	// Validate DPoP before consuming the one-time grant. A nonce challenge must
+	// leave the pre-authorized code available for the client's retry.
+	const dpop = await validateDpopProof(ctx, client.clientId);
+
 	const pre_authorized_code = params["pre-authorized_code"] as string;
 	const tx_code = params["tx_code"] as string | undefined;
 
@@ -35,11 +44,6 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 
 	validatePreAuthorizedCodeGrant(grant, tx_code);
 
-	const client = await provider.Client.find('__pre-authorized_code_client__');
-	if (!client) {
-		throw new errors.InvalidClient('Could not find pre-authorized_code client');
-	}
-
 	const scope = grant.scope;
 	if (!scope) {
 		throw new errors.InvalidGrant('Could not resolve scope from grant.');
@@ -50,8 +54,6 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 	if (!accountId) {
 		throw new errors.AccessDenied('invalid account_id')
 	}
-
-	const dpop = await validateDpopProof(ctx, client.clientId);
 
 	const token = new provider.AccessToken({
 		accountId,
@@ -124,6 +126,11 @@ async function validateDpopProof(ctx: any, clientId: string): Promise<{ thumbpri
 			throw new errors.InvalidDpopProof('DPoP proof must have a jti string property');
 		}
 
+		if (config.dpopNonceRequired && (typeof payload.nonce !== 'string' || !isValidDpopNonce(payload.nonce, config.dpopNonceSecret, nowSeconds))) {
+			ctx.set('DPoP-Nonce', createDpopNonce(config.dpopNonceSecret));
+			throw new (errors as any).UseDpopNonce('DPoP proof nonce is missing or invalid');
+		}
+
 		if (payload.htm !== ctx.method) {
 			throw new errors.InvalidDpopProof('DPoP proof htm mismatch');
 		}
@@ -171,6 +178,19 @@ async function validateDpopProof(ctx: any, clientId: string): Promise<{ thumbpri
 			err instanceof Error ? err.message : undefined,
 		);
 	}
+}
+
+function createDpopNonce(secret: Buffer, now = Math.floor(Date.now() / 1000)): string {
+	const timestamp = String(now);
+	return `${timestamp}.${crypto.createHmac('sha256', secret).update(timestamp).digest('base64url')}`;
+}
+
+function isValidDpopNonce(nonce: string, secret: Buffer, now: number): boolean {
+	const [timestamp, signature] = nonce.split('.');
+	const issuedAt = Number(timestamp);
+	if (!Number.isInteger(issuedAt) || !signature || Math.abs(now - issuedAt) > DPOP_PROOF_MAX_AGE_SECONDS) return false;
+	const expected = crypto.createHmac('sha256', secret).update(timestamp).digest('base64url');
+	return signature.length === expected.length && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 }
 
 async function validatePreAuthorizedCodeGrant(grant: PreAuthorizedCodeStoreItem, txCodeReceived?: string | number ) {

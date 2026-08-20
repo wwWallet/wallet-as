@@ -73,6 +73,12 @@ export function createApp() {
     },
     features: {
       devInteractions: { enabled: false },
+      dPoP: {
+        enabled: true,
+        nonceSecret: config.dpopNonceSecret,
+        requireNonce: () => config.dpopNonceRequired,
+        allowReplay: false,
+      },
       introspection: {
         enabled: true,
         allowedPolicy: introspectionAllowedPolicy,
@@ -81,9 +87,6 @@ export function createApp() {
         enabled: true,
       },
       pushedAuthorizationRequests: {
-        enabled: true,
-      },
-      dPoP: {
         enabled: true,
       },
       resourceIndicators: {

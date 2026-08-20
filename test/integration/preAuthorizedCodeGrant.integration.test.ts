@@ -84,11 +84,53 @@ describe("pre-authorized code grant", () => {
     expect(mockConsumePreAuthorizedCode).toHaveBeenLastCalledWith("another-code", "12345");
   });
 
+  it("challenges once for a DPoP nonce and accepts a proof containing it", async () => {
+    await restartServer({
+      DPOP_NONCE_REQUIRED: "true",
+      DPOP_NONCE_SECRET: "test-dpop-nonce-secret-with-32-chars",
+    });
+
+    const firstResponse = await requestPreAuthorizedToken({
+      "pre-authorized_code": "nonce-code",
+      tx_code: "12345",
+    });
+
+    expect(firstResponse.status).toBe(400);
+    expect(firstResponse.headers["dpop-nonce"]).toMatch(/^\d+\.[A-Za-z0-9_-]+$/);
+    expect(mockConsumePreAuthorizedCode).not.toHaveBeenCalledWith("nonce-code", "12345");
+
+    const retryResponse = await requestPreAuthorizedToken({
+      "pre-authorized_code": "nonce-code",
+      tx_code: "12345",
+      dpopNonce: firstResponse.headers["dpop-nonce"],
+    });
+
+    expect(retryResponse.status).toBe(200);
+    expect(retryResponse.body.token_type).toBe("DPoP");
+  });
+
+  it("rejects a tampered DPoP nonce", async () => {
+    await restartServer({
+      DPOP_NONCE_REQUIRED: "true",
+      DPOP_NONCE_SECRET: "test-dpop-nonce-secret-with-32-chars",
+    });
+
+    const response = await requestPreAuthorizedToken({
+      "pre-authorized_code": "tampered-nonce-code",
+      tx_code: "12345",
+      dpopNonce: "1234567890.invalid",
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.headers["dpop-nonce"]).toBeDefined();
+  });
+
   async function requestPreAuthorizedToken(params: {
     "pre-authorized_code": string;
     tx_code?: string;
+    dpopNonce?: string;
   }) {
-    const dpop = await createDpopProof(tokenEndpoint);
+    const dpop = await createDpopProof(tokenEndpoint, params.dpopNonce);
 
     return request(server)
       .post("/token")
@@ -99,9 +141,26 @@ describe("pre-authorized code grant", () => {
         ...params,
       });
   }
+
+  async function restartServer(env: Record<string, string>) {
+    server?.close();
+    process.env = {
+      ...originalEnv,
+      PRE_AUTHORIZED_CREDENTIAL_ISSUANCE: "true",
+      PRE_AUTHORIZED_CODE_API_URL: "http://issuer.test",
+      PRE_AUTHORIZED_CODE_API_BEARER_TOKEN: "test-token",
+      ...env,
+    };
+    vi.resetModules();
+    const { createApp } = await import("../../src/app");
+    const { app } = createApp();
+    server = app.listen();
+    const { port } = server.address() as AddressInfo;
+    tokenEndpoint = `http://127.0.0.1:${port}/token`;
+  }
 });
 
-async function createDpopProof(htu: string) {
+async function createDpopProof(htu: string, nonce?: string) {
   const { privateKey, publicKey } = await generateKeyPair("ES256", { extractable: true });
   const publicJwk = await exportJWK(publicKey);
 
@@ -109,6 +168,7 @@ async function createDpopProof(htu: string) {
     htm: "POST",
     htu,
     jti: randomUUID(),
+    ...(nonce ? { nonce } : {}),
   })
     .setProtectedHeader({
       alg: "ES256",
