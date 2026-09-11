@@ -32,7 +32,7 @@
     "oidc-provider": "^9.6.0",
     "openid-client": "^6.8.2",
     "pug": "^3.0.3",
-    "wallet-common": "git+https://github.com/wwWallet/wallet-common.git#9df178665980ea7e7cbe2a441a3e6dbcec9dff6c",
+    "wallet-common": "git+https://github.com/wwWallet/wallet-common.git#v0.6.1",
     "zod": "^4.3.6"
   }
 }
