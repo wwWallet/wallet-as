@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "A standalone AS for wwWallet",
   "main": "app.ts",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "DEBUG=oidc-provider:* ts-node-dev --respawn --transpile-only src/app.ts",
     "start": "node dist/app.js",
@@ -15,7 +18,7 @@
   "license": "BSD-2-Clause",
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^25.0.0",
+    "@types/node": "^24.10.2",
     "@types/oidc-provider": "^9.5.0",
     "@types/supertest": "^6.0.3",
     "supertest": "^7.1.4",
