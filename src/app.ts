@@ -82,26 +82,15 @@ export function createApp() {
       },
       resourceIndicators: {
         enabled: true,
-        async getResourceServerInfo(ctx, resourceIndicator, client) {
-
+        async getResourceServerInfo(_ctx, resourceIndicator, _client) {
           if (!resourceIndicator || !config.trustedIssuers.includes(resourceIndicator)) {
             throw new oidc.errors.InvalidTarget();
           }
 
-          const scope = ctx.oidc.params?.scope as string | undefined;
-          if (scope) {
-            const parsedScopes = scope.split(' ').filter(Boolean);
-            for (const parsedScope of parsedScopes) {
-              if (!config.scopes.includes(parsedScope)) {
-                throw new oidc.errors.InvalidScope('Scope is not supported by resource server', parsedScope);
-              }
-            }
-          }
-
           return {
-            scope: scope,
+            scope: config.scopes.join(" "),
             audience: resourceIndicator,
-          } as unknown as oidc.ResourceServer;
+          }
         },
         async defaultResource(_ctx, _client, oneOf) {
           if (oneOf && oneOf.length > 0) {
