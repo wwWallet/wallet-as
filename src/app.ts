@@ -54,6 +54,9 @@ export function createApp() {
         "pre-authorized_grant_anonymous_access_supported": true,
       } : {}),
     },
+    enabledJWA: {
+      dPoPSigningAlgValues: ["ES256"],
+    },
     scopes: config.scopes,
     interactions: {
       policy: interactionPolicies(),
@@ -70,6 +73,12 @@ export function createApp() {
     },
     features: {
       devInteractions: { enabled: false },
+      dPoP: {
+        enabled: true,
+        nonceSecret: config.dpopNonceSecret,
+        requireNonce: () => config.dpopNonceRequired,
+        allowReplay: false,
+      },
       introspection: {
         enabled: true,
         allowedPolicy: introspectionAllowedPolicy,

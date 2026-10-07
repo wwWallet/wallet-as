@@ -23,11 +23,21 @@ export async function consumePreAuthorizedCode(code: string, token?: string | nu
         })
     });
 
-    if (!grantResponse) {
+    if (!grantResponse.ok) {
         throw new Error("Requested pre-authorized code is invalid.");
     }
 
-    const responseBody = await grantResponse.json();
-    return responseBody;
+    let responseBody: unknown;
+    try {
+        responseBody = await grantResponse.json();
+    } catch (_err) {
+        throw new Error("Pre-authorized code API returned an invalid response.");
+    }
+
+    if (!responseBody || typeof responseBody !== "object") {
+        throw new Error("Pre-authorized code API returned an invalid response.");
+    }
+
+    return responseBody as PreAuthorizedCodeStoreItem;
 
 }
