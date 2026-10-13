@@ -13,7 +13,7 @@ import { dataStoreClient } from "../stores/dataStoreClient";
 const privateKeyPem = fs.readFileSync(path.join(__dirname, "../../keys/pem.key"), 'utf-8').toString();
 const leafCert = fs.readFileSync(path.join(__dirname, "../../keys/pem.crt"), 'utf-8').toString();
 const x5c = [
-	pemToBase64(leafCert),
+  pemToBase64(leafCert),
 ];
 
 export type OpenidForPresentationsConfiguration = {
@@ -22,7 +22,7 @@ export type OpenidForPresentationsConfiguration = {
 };
 
 export class OpenID4VPService {
-  private static rpStateKV = 
+  private static rpStateKV =
     new DataStore<RPState | string>(dataStoreClient, "rpStateKV");
   public openid4vpClient: OpenID4VPClientAPI;
 

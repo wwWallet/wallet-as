@@ -64,3 +64,32 @@ Authenticators implement the `Authenticator` interface from `src/authenticators/
 2. Export a factory returning `Authenticator`.
 3. Implement route registration and hooks needed by your flow.
 4. Register the factory in `src/authenticators/index.ts`.
+
+## Pre-commit Hook
+
+We use [pre-commit](https://pre-commit.com/) to enforce `.editorconfig` before code is committed.
+
+```sh
+# Install pre-commit if needed, then install this repository's hooks.
+pip install pre-commit       # or brew install pre-commit / pipx install pre-commit
+pre-commit install
+
+# Run all hooks, including the end-of-file auto-fixer.
+pre-commit run --all-files
+```
+
+### Local checks without committing
+
+Run only the EditorConfig check, without running auto-fixers:
+
+```sh
+pre-commit run editorconfig-checker --all-files
+```
+
+Omit `--all-files` to check only staged files. The first run installs the pinned native checker in pre-commit's cache. This check reports violations without changing or staging files.
+
+### What happens on commit
+
+- Auto-fixers run (e.g. add final newlines).
+- After the auto-fixers, editorconfig-checker validates staged files.
+- If violations remain, fix them manually until the commit passes.

@@ -214,21 +214,21 @@
 }
 
 .consent__credential-preview {
-	margin: 12px 0 4px;
-	display: flex;
-	justify-content: center;
+  margin: 12px 0 4px;
+  display: flex;
+  justify-content: center;
 }
 
 .consent__credential-img {
-	width: min(260px, 100%);
-	height: auto;
-	display: block;
+  width: min(260px, 100%);
+  height: auto;
+  display: block;
 
-	border-radius: 12px;
-	border: 1px solid var(--border);
-	background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #ffffff;
 
-	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
 }
 
 @media (max-width: 520px) {

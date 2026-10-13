@@ -15,4 +15,3 @@ dist
 .env
 public/.well-known/*
 certs/*
-
