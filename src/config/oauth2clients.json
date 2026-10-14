@@ -25,7 +25,7 @@
     },
     {
         "client_id": "1233",
-        "token_endpoint_auth_method": "none",
+        "token_endpoint_auth_method": "attest_jwt_client_auth",
         "redirect_uris": [
             "http://localhost:3000/"
         ],
