@@ -3,9 +3,11 @@ import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import request from "supertest";
 import { randomUUID } from "node:crypto";
-import { exportJWK, generateKeyPair, SignJWT } from "jose";
+import { calculateJwkThumbprint, decodeProtectedHeader, exportJWK, generateKeyPair, SignJWT } from "jose";
 
-const mockConsumePreAuthorizedCode = vi.fn();
+const { mockConsumePreAuthorizedCode } = vi.hoisted(() => ({
+  mockConsumePreAuthorizedCode: vi.fn(),
+}));
 
 vi.mock("../../src/services/preAuthorizedCodeService", () => ({
   consumePreAuthorizedCode: mockConsumePreAuthorizedCode,
@@ -14,6 +16,7 @@ vi.mock("../../src/services/preAuthorizedCodeService", () => ({
 describe("pre-authorized code grant", () => {
   const originalEnv = process.env;
   let server: Server;
+  let provider: import("oidc-provider").Provider;
   let tokenEndpoint: string;
 
   beforeEach(async () => {
@@ -49,8 +52,19 @@ describe("pre-authorized code grant", () => {
     );
 
     const { createApp } = await import("../../src/app");
-    const { app } = createApp();
-    server = app.listen();
+    const config = (await import("../../src/config")).default;
+    config.oidClients.push({
+      client_id: "pre-authorized-authenticated-test",
+      client_secret: "test-client-secret",
+      token_endpoint_auth_method: "client_secret_basic",
+      grant_types: ["urn:ietf:params:oauth:grant-type:pre-authorized_code"],
+      response_types: [],
+      redirect_uris: [],
+    });
+    const created = createApp();
+    provider = created.provider;
+    const testApp = created.app;
+    server = testApp.listen();
     const { port } = server.address() as AddressInfo;
     tokenEndpoint = `http://127.0.0.1:${port}/token`;
   });
@@ -72,7 +86,71 @@ describe("pre-authorized code grant", () => {
     expect(res.body.access_token).toBeDefined();
     expect(res.body.token_type).toBe("DPoP");
     expect(res.body.refresh_token).toBeUndefined();
+    const token = await provider.AccessToken.find(res.body.access_token);
+    expect(token?.clientId).toBe("__pre-authorized_code_client__");
     expect(mockConsumePreAuthorizedCode).toHaveBeenCalledWith("test-code", "12345");
+  });
+
+  it("issues a token associated with the authenticated client", async () => {
+    const res = await requestPreAuthorizedToken({
+      "pre-authorized_code": "authenticated-code",
+      tx_code: "12345",
+    }, "Basic " + Buffer.from("pre-authorized-authenticated-test:test-client-secret").toString("base64"));
+
+    expect(res.status).toBe(200);
+    expect(res.body.token_type).toBe("DPoP");
+    expect(res.body.refresh_token).toBeUndefined();
+    const token = await provider.AccessToken.find(res.body.access_token);
+    expect(token?.clientId).toBe("pre-authorized-authenticated-test");
+    expect(token?.jkt).toBe(res.body.cnf.jkt);
+  });
+
+  it.each([
+    ["invalid credentials", "pre-authorized-authenticated-test:wrong-secret", "invalid_client"],
+    ["unknown client", "unknown-client:secret", "invalid_client"],
+    ["client without grant permission", "test:test", "invalid_request"],
+  ])("rejects %s before consuming the code", async (_name, credentials, error) => {
+    const res = await requestPreAuthorizedToken({
+      "pre-authorized_code": "unconsumed-code",
+      tx_code: "12345",
+    }, "Basic " + Buffer.from(credentials).toString("base64"));
+
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(res.body.error).toBe(error);
+    expect(res.body.access_token).toBeUndefined();
+    expect(mockConsumePreAuthorizedCode).not.toHaveBeenCalled();
+  });
+
+  it.each(["pre-authorized-authenticated-test", "unknown-client"])(
+    "rejects client_id %s without valid authentication instead of using the anonymous client",
+    async (clientId) => {
+      const res = await requestPreAuthorizedToken({
+        "pre-authorized_code": "unconsumed-code",
+        tx_code: "12345",
+        client_id: clientId,
+      });
+
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(res.body.error).toBe("invalid_client");
+      expect(mockConsumePreAuthorizedCode).not.toHaveBeenCalled();
+    }
+  );
+
+  it("returns an issuer API OAuth error without issuing tokens", async () => {
+    mockConsumePreAuthorizedCode.mockResolvedValueOnce({
+      error: "invalid_grant",
+      error_description: "The pre-authorized code is invalid",
+    });
+
+    const res = await requestPreAuthorizedToken({
+      "pre-authorized_code": "invalid-code",
+      tx_code: "12345",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("invalid_grant");
+    expect(res.body.access_token).toBeUndefined();
+    expect(res.body.cnf).toBeUndefined();
   });
 
   it("passes the pre-authorized code and transaction code to the issuer API", async () => {
@@ -129,17 +207,30 @@ describe("pre-authorized code grant", () => {
     "pre-authorized_code": string;
     tx_code?: string;
     dpopNonce?: string;
-  }) {
+    client_id?: string;
+  }, authorization?: string) {
     const dpop = await createDpopProof(tokenEndpoint, params.dpopNonce);
 
-    return request(server)
+    const tokenRequest = request(server)
       .post("/token")
       .type("form")
-      .set("DPoP", dpop)
-      .send({
-        grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
-        ...params,
-      });
+      .set("DPoP", dpop);
+    if (authorization) {
+      tokenRequest.set("Authorization", authorization);
+    }
+    const response = await tokenRequest.send({
+      grant_type: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+      ...params,
+    });
+
+    if (response.status === 200) {
+      const { jwk } = decodeProtectedHeader(dpop);
+      if (!jwk) {
+        throw new Error("Test DPoP proof is missing its public key");
+      }
+      expect(response.body.cnf).toEqual({ jkt: await calculateJwkThumbprint(jwk) });
+    }
+    return response;
   }
 
   async function restartServer(env: Record<string, string>) {

@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { calculateJwkThumbprint, EmbeddedJWK, jwtVerify, type JWK } from 'jose';
 import { errors } from 'oidc-provider';
-import { consumePreAuthorizedCode, PreAuthorizedCodeStoreItem } from '../services/preAuthorizedCodeService';
+import { consumePreAuthorizedCode, PreAuthorizedCodeStoreItem, type ConsumePreAuthorizedCodeResult } from '../services/preAuthorizedCodeService';
 import config from '../config';
 
 const PRE_AUTHORIZED_CODE_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:pre-authorized_code';
@@ -17,7 +17,7 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 
   validateTokenRequestParams(params);
 
-  const client = await provider.Client.find('__pre-authorized_code_client__');
+  const client = ctx.oidc.client ?? await provider.Client.find('__pre-authorized_code_client__');
   if (!client) {
     throw new errors.InvalidClient('Could not find pre-authorized_code client');
   }
@@ -29,7 +29,7 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
   const pre_authorized_code = params["pre-authorized_code"] as string;
   const tx_code = params["tx_code"] as string | undefined;
 
-  let grant: PreAuthorizedCodeStoreItem;
+  let grant: ConsumePreAuthorizedCodeResult;
   try {
     grant = await consumePreAuthorizedCode(pre_authorized_code, tx_code);
   } catch (err) {
@@ -37,9 +37,9 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
     throw new errors.InvalidGrant('invalid pre-authorized code');
   }
 
-  if ((grant as any).error) {
-    console.log(`Error consuming pre-authorized code: ${(grant as any).error_description}`);
-    throw new errors.InvalidGrant((grant as any).error);
+  if ("error" in grant) {
+    console.log(`Error consuming pre-authorized code: ${grant.error_description}`);
+    throw new errors.InvalidGrant(grant.error);
   }
 
   validatePreAuthorizedCodeGrant(grant, tx_code);
@@ -70,6 +70,7 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
     access_token: accessToken,
     token_type: 'DPoP',
     expires_in: token.expiration,
+    cnf: { jkt: dpop.thumbprint },
   };
 
 }

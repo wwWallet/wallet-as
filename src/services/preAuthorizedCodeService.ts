@@ -1,4 +1,4 @@
-import { PreAuthorizedCodeGrant } from "wallet-common";
+import type { PreAuthorizedCodeGrant } from "wallet-common";
 import config from "../config";
 
 export interface PreAuthorizedCodeStoreItem extends PreAuthorizedCodeGrant {
@@ -9,7 +9,14 @@ export interface PreAuthorizedCodeStoreItem extends PreAuthorizedCodeGrant {
     scope?: string;
 };
 
-export async function consumePreAuthorizedCode(code: string, token?: string | number): Promise<PreAuthorizedCodeStoreItem> {
+export interface PreAuthorizedCodeError {
+  error: string;
+  error_description?: string;
+}
+
+export type ConsumePreAuthorizedCodeResult = PreAuthorizedCodeStoreItem | PreAuthorizedCodeError;
+
+export async function consumePreAuthorizedCode(code: string, token?: string | number): Promise<ConsumePreAuthorizedCodeResult> {
 
     const grantResponse = await fetch(`${config.preAuthorizedCodeApiUrl}/pre-authorized-code`, {
         method: "POST",
@@ -38,6 +45,6 @@ export async function consumePreAuthorizedCode(code: string, token?: string | nu
         throw new Error("Pre-authorized code API returned an invalid response.");
     }
 
-    return responseBody as PreAuthorizedCodeStoreItem;
+    return responseBody as ConsumePreAuthorizedCodeResult;
 
 }
