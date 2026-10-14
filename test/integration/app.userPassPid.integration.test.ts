@@ -25,7 +25,7 @@ describe("app integration", () => {
 
   describe("introspection flow", () => {
     const originalEnv = process.env;
-    let agent: request.SuperAgentTest;
+    let agent: ReturnType<typeof request.agent>;
     let accessToken: string;
     let introspectionPath: string;
 
@@ -594,7 +594,7 @@ function normalizeLocation(location: string) {
 }
 
 async function followRedirectsToOk(
-  agent: request.SuperAgentTest,
+  agent: ReturnType<typeof request.agent>,
   location: string,
   maxHops = 5
 ) {
@@ -613,7 +613,7 @@ async function followRedirectsToOk(
 }
 
 async function followRedirectsToAuthCode(
-  agent: request.SuperAgentTest,
+  agent: ReturnType<typeof request.agent>,
   location: string,
   redirectUri: string,
   maxHops = 5
@@ -648,7 +648,7 @@ function tryExtractAuthCode(location: string, redirectUri: string) {
 }
 
 async function issueAccessToken(
-  agent: request.SuperAgentTest,
+  agent: ReturnType<typeof request.agent>,
   authQuery: Record<string, string> = {},
   options: { confirmConsent?: boolean } = {}
 ) {
@@ -724,6 +724,7 @@ async function issueAccessToken(
     })
     .expect(200);
 
+  expect(tokenRes.body.cnf).toBeUndefined();
   const accessToken = tokenRes.body.access_token as string;
   const refreshToken = tokenRes.body.refresh_token as string;
   expect(accessToken).toBeTruthy();
@@ -742,7 +743,7 @@ async function issueAccessToken(
 }
 
 async function introspectAccessToken(
-  agent: request.SuperAgentTest,
+  agent: ReturnType<typeof request.agent>,
   tokenResponse: Awaited<ReturnType<typeof issueAccessToken>>
 ) {
   const introspectionRes = await agent
@@ -756,7 +757,7 @@ async function introspectAccessToken(
 }
 
 async function refreshAccessToken(
-  agent: request.SuperAgentTest,
+  agent: ReturnType<typeof request.agent>,
   options: {
     refreshToken: string;
     scope?: string;
@@ -773,6 +774,7 @@ async function refreshAccessToken(
     })
     .expect(200);
 
+  expect(tokenRes.body.cnf).toBeUndefined();
   const accessToken = tokenRes.body.access_token as string;
   const refreshToken = tokenRes.body.refresh_token as string | undefined;
   expect(accessToken).toBeTruthy();

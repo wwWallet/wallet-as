@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type * as oidc from "oidc-provider";
 import { z } from "zod";
+import crypto from "node:crypto";
 dotenv.config();
 
 const serviceUrl = process.env.SERVICE_URL || "http://localhost:6060";
@@ -40,6 +41,16 @@ try {
 const dataStoreHost = process.env.DATA_STORE_HOST || "localhost";
 const dataStorePort = Number(process.env.DATA_STORE_PORT) || 6379;
 const dataStorePassword = process.env.DATA_STORE_PASSWORD || null;
+
+const dpopNonceSecret = process.env.DPOP_NONCE_SECRET;
+const dpopNonceRequired = process.env.DPOP_NONCE_REQUIRED?.trim() === "true";
+if (dpopNonceRequired && (!dpopNonceSecret || dpopNonceSecret.length < 32)) {
+  throw new Error("DPOP_NONCE_SECRET must be configured with at least 32 characters when DPOP_NONCE_REQUIRED=true");
+}
+const dpopNonceSecretBytes = crypto
+  .createHash("sha256")
+  .update(dpopNonceSecret || "wwwallet-development-dpop-nonce-secret")
+  .digest();
 
 if (process.env.NODE_ENV === "production" && !dataStorePassword) {
   console.error(
@@ -115,6 +126,8 @@ export default {
   dataStoreHost: dataStoreHost,
   dataStorePort: dataStorePort,
   dataStorePassword: dataStorePassword,
+  dpopNonceSecret: dpopNonceSecretBytes,
+  dpopNonceRequired: dpopNonceRequired,
   oidClients: loadOAuth2Clients(),
   introspectionClient: process.env.INTROSPECTION_CLIENT || null,
   introspectionClientSecret: process.env.INTROSPECTION_CLIENT_SECRET || null,
