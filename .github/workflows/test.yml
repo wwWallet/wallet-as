@@ -1,0 +1,61 @@
+name: test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches-ignore:
+      - 'tmp**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Cancel superseded PR runs; let every master run finish
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: ${{ matrix.suite }} tests
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Integration tests start a Valkey container via testcontainers,
+        # using the Docker daemon available on ubuntu-latest runners
+        suite: [unit, integration]
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --network-concurrency 1
+
+      # The app reads these at import time
+      # Generate throwaway ones for CI
+      - name: Prepare environment and keys
+        run: |
+          cp .env.template .env
+          openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes \
+            -keyout keys/pem.key -out keys/pem.crt -days 1 \
+            -subj "/CN=wallet-as-ci" -addext "subjectAltName=DNS:localhost"
+          node -e '
+            const { generateKeyPairSync, randomUUID } = require("node:crypto");
+            const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+            const jwk = { ...privateKey.export({ format: "jwk" }), kid: randomUUID(), use: "sig", alg: "RS256" };
+            require("node:fs").writeFileSync("keys/oidc.jwks.json", JSON.stringify({ keys: [jwk] }));
+          '
+
+      - name: Run ${{ matrix.suite }} tests
+        run: yarn test:${{ matrix.suite }} --run
