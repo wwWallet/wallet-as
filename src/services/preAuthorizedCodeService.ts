@@ -2,8 +2,8 @@ import { PreAuthorizedCodeGrant } from "wallet-common";
 import config from "../config";
 
 export interface PreAuthorizedCodeStoreItem extends PreAuthorizedCodeGrant {
-	exp?: number;
-	tx_value?: string | number;
+  exp?: number;
+  tx_value?: string | number;
     credential_configuration_ids?: string[];
     account_id?: string;
     scope?: string;

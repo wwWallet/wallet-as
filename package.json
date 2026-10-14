@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "A standalone AS for wwWallet",
   "main": "app.ts",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "DEBUG=oidc-provider:* ts-node-dev --respawn --transpile-only src/app.ts",
     "start": "node dist/app.js",
@@ -15,24 +18,24 @@
   "license": "BSD-2-Clause",
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^25.0.0",
-    "@types/oidc-provider": "^9.5.0",
+    "@types/node": "^24.10.2",
+    "@types/oidc-provider": "^9.12.1",
     "@types/supertest": "^6.0.3",
-    "supertest": "^7.1.4",
-    "testcontainers": "^12.0.1",
+    "supertest": "^7.3.0",
+    "testcontainers": "^12.2.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.15"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "iovalkey": "^0.3.3",
-    "oidc-provider": "^9.6.0",
+    "oidc-provider": "^9.12.2",
     "openid-client": "^6.8.2",
     "pug": "^3.0.3",
-    "wallet-common": "git+https://github.com/wwWallet/wallet-common.git#c7b487b4bd99a5ee2800b330bfe077d7896d1ac9",
+    "wallet-common": "git+https://github.com/wwWallet/wallet-common.git#v1.0.0",
     "zod": "^4.3.6"
   }
 }
