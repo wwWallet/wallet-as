@@ -6,6 +6,8 @@ const VALKEY_PORT = 6379;
 const VALKEY_PASSWORD = "test-secret";
 
 export default async function setup() {
+  // Deterministic test fixture only; never use this value in a deployment.
+  process.env.ABCA_CHALLENGE_SECRET = "ab".repeat(32);
   valkeyContainer = await new GenericContainer("valkey/valkey:latest")
     .withExposedPorts(VALKEY_PORT)
     .withCommand([

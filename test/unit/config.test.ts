@@ -1,10 +1,21 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("config", () => {
   const originalCwd = process.cwd();
+
+  beforeEach(() => {
+    // Deterministic test fixture only; never use this value in a deployment.
+    vi.stubEnv("ABCA_CHALLENGE_SECRET", "ab".repeat(32));
+    vi.stubEnv("OPENID4VC_PROFILE", "DEFAULT");
+    vi.stubEnv("WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS", "https://status.example");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
 
   function writeClientsFile(root: string, clients: unknown) {
     const configDir = path.join(root, "src/config");
@@ -123,6 +134,69 @@ describe("config", () => {
     ).rejects.toThrow(/redirect_uris/);
   });
 
+  it.each([
+    [undefined, "DEFAULT"], ["DEFAULT", "DEFAULT"], ["WEBUILD", "WEBUILD"],
+  ])("reads OPENID4VC_PROFILE=%s as %s", async (value, profile) => {
+    vi.stubEnv("OPENID4VC_PROFILE", value);
+    const { default: config } = await importConfigFromTempProject([]);
+    expect(config.openid4vcProfile).toBe(profile);
+  });
+
+  it.each(["", "typo", "true", "HAIP", "ETSI"])("rejects unsupported OPENID4VC_PROFILE: %s", async (value) => {
+    vi.stubEnv("OPENID4VC_PROFILE", value);
+    await expect(importConfigFromTempProject([])).rejects.toThrow();
+  });
+
+  it.each([undefined, "", " , "])("requires status origins under WEBUILD (case %#)", async (value) => {
+    vi.stubEnv("OPENID4VC_PROFILE", "WEBUILD");
+    vi.stubEnv("WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS", value);
+    await expect(importConfigFromTempProject([])).rejects.toThrow(
+      "WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS is required when OPENID4VC_PROFILE=WEBUILD."
+    );
+  });
+
+  it("does not require status origins under DEFAULT", async () => {
+    vi.stubEnv("WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS", undefined);
+    const { default: config } = await importConfigFromTempProject([]);
+    expect(config.weBuildAbcaStatusListAllowedOrigins).toEqual([]);
+  });
+
+  it("reads the WE BUILD status origin list", async () => {
+    vi.stubEnv("OPENID4VC_PROFILE", "WEBUILD");
+    vi.stubEnv("WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS", " https://one.example, https://two.example, ");
+    const { default: config } = await importConfigFromTempProject([]);
+    expect(config.weBuildAbcaStatusListAllowedOrigins).toEqual(["https://one.example", "https://two.example"]);
+  });
+
+  it("decodes the challenge secret into a stable 32-byte Buffer", async () => {
+    vi.stubEnv("ABCA_CHALLENGE_SECRET", "AB".repeat(32));
+    const first = (await importConfigFromTempProject([])).default;
+    const second = (await importConfigFromTempProject([])).default;
+
+    expect(Buffer.isBuffer(first.abcaChallengeSecret)).toBe(true);
+    expect(first.abcaChallengeSecret.length).toBe(32);
+    expect(first.abcaChallengeSecret).toEqual(Buffer.alloc(32, 0xab));
+    expect(second.abcaChallengeSecret).toEqual(first.abcaChallengeSecret);
+  });
+
+  it.each([
+    undefined,
+    "",
+    "ab".repeat(31),
+    "ab".repeat(33),
+    "a".repeat(63),
+    "gg".repeat(32),
+    `${"ab".repeat(31)}a!`,
+    ` ${"ab".repeat(32)}`,
+    `${"ab".repeat(32)}\n`,
+  ])("rejects a missing or malformed challenge secret (case %#)", async (secret) => {
+    vi.stubEnv("ABCA_CHALLENGE_SECRET", secret);
+
+    await expect(importConfigFromTempProject([])).rejects.toThrow(
+      "ABCA_CHALLENGE_SECRET must contain exactly 64 hexadecimal characters (32 bytes)."
+    );
+  });
+
   it("does not allow production builds to use an insecure Data Store", async () => {
     const originalEnv = process.env;
     process.env = {
@@ -133,7 +207,7 @@ describe("config", () => {
 
     const exitSpy = vi
       .spyOn(process, "exit")
-      .mockImplementation((code?: number) => {
+      .mockImplementation((code) => {
         throw new Error(`process.exit:${code}`);
       });
     const consoleSpy = vi

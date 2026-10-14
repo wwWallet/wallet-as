@@ -1,6 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("introspectionAllowedPolicy", () => {
+  beforeEach(() => {
+    // Deterministic test fixture only; never use this value in a deployment.
+    vi.stubEnv("ABCA_CHALLENGE_SECRET", "ab".repeat(32));
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
   it("rejects non client_secret_basic auth", async () => {
     vi.resetModules();
     const { introspectionAllowedPolicy } = await import(
