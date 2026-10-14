@@ -128,8 +128,8 @@ export default {
   demoPassword: process.env.USER_PASS_PID_DEMO_PASSWORD || null,
   trustedRootCertificates: trustedRootCertificates,
   trustedIssuers: process.env.TRUSTED_ISSUERS
-		? process.env.TRUSTED_ISSUERS.split(',')
-		: ["http://localhost:8003/openid"],
+    ? process.env.TRUSTED_ISSUERS.split(',')
+    : ["http://localhost:8003/openid"],
   authBrokerProviderUrl: authBrokerProviderUrl,
   authBrokerClientId: authBrokerClientId,
   authBrokerClientSecret: authBrokerClientSecret,

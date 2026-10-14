@@ -70,7 +70,7 @@ export default (
     return { consent };
   };
 
-	app.get('/interaction/:uid', async (req, res, next) => {
+  app.get('/interaction/:uid', async (req, res, next) => {
       try {
         const interaction = await provider.interactionDetails(req, res);
         const {

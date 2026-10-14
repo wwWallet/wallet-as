@@ -1,0 +1,21 @@
+# EditorConfig: https://EditorConfig.org
+
+root = true
+
+[*]
+charset = utf-8
+# Type of newline is managed by git in .gitattributes
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{css,js,jsx,json,ts,tsx}]
+indent_style = space
+indent_size = 2
+
+[{*.Dockerfile,Dockerfile}]
+indent_style = tab
+
+# YAML does not allow tab indentation
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
