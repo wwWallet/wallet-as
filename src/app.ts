@@ -16,6 +16,10 @@ import {
 import { dataStoreClient } from "./stores/dataStoreClient";
 import { createOidcValkeyAdapter } from "./stores/OidcValkeyAdapter";
 import preAuthorizedCodeHandler from "./oid4vci/preAuthorizedCodeHandler";
+import {
+  getAttestationSignaturePublicKey,
+  assertAttestationJwtAndPop,
+} from "./services/attestationBasedClientAuthenticationService";
 
 export function createApp() {
   const app = express();
@@ -48,7 +52,15 @@ export function createApp() {
     adapter: createOidcValkeyAdapter(dataStoreClient),
     clients: oidClients,
     jwks: config.oidcJwks,
-
+    enabledJWA: {
+      attestSigningAlgValues: ['ES256']
+    },
+    clientAuthMethods: [
+      'client_secret_basic',
+      'client_secret_post',
+      'attest_jwt_client_auth',
+      'none',
+    ],
     discovery: {
       ...(config.preAuthorizedCredentialIssuance ? {
         "pre-authorized_grant_anonymous_access_supported": true,
@@ -69,6 +81,13 @@ export function createApp() {
       }
     },
     features: {
+      attestClientAuth: {
+        enabled: true,
+        challengeSecret: config.abcaChallengeSecret,
+        ack: 'draft-10',
+        getAttestationSignaturePublicKey,
+        assertAttestationJwtAndPop
+      },
       devInteractions: { enabled: false },
       introspection: {
         enabled: true,
@@ -150,7 +169,19 @@ export function createApp() {
     );
 
     routesRoot.post("/token", (req, _res, next) => {
-      if (req.body?.grant_type === "urn:ietf:params:oauth:grant-type:pre-authorized_code") {
+      const hasClientAuthentication = Boolean(
+        req.body?.client_id ||
+        req.body?.client_secret ||
+        req.body?.client_assertion ||
+        req.headers.authorization ||
+        req.headers["oauth-client-attestation"] ||
+        req.headers["oauth-client-attestation-pop"]
+      );
+
+      if (
+        req.body?.grant_type === "urn:ietf:params:oauth:grant-type:pre-authorized_code"
+        && !hasClientAuthentication
+      ) {
         req.body.client_id = "__pre-authorized_code_client__";
       }
 
