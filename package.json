@@ -10,7 +10,7 @@
     "dev": "DEBUG=oidc-provider:* ts-node-dev --respawn --transpile-only src/app.ts",
     "start": "node dist/app.js",
     "build": "tsc",
-    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test:unit": "vitest test/unit/*.test.ts",
     "test:integration": "vitest test/integration/*.test.ts --config vitest.integration.config.ts"
   },
