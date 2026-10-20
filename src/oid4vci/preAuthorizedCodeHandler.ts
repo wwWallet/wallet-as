@@ -1,20 +1,19 @@
 import { calculateJwkThumbprint } from 'jose';
 import { errors } from 'oidc-provider';
-import { consumePreAuthorizedCode, PreAuthorizedCodeStoreItem } from '../services/preAuthorizedCodeService';
+import {
+  consumePreAuthorizedCode,
+  PreAuthorizedCodeStoreItem,
+} from '../services/preAuthorizedCodeService';
 
 export default async function preAuthorizedCodeHandler(ctx: any) {
+  const { provider, params } = ctx.oidc;
 
-  const {
-    provider,
-    params,
-  } = ctx.oidc;
-
-  const pre_authorized_code = params["pre-authorized_code"];
-  const tx_code = params["tx_code"];
+  const pre_authorized_code = params['pre-authorized_code'];
+  const tx_code = params['tx_code'];
 
   const grant = await consumePreAuthorizedCode(pre_authorized_code, tx_code);
 
-  if((grant as any).error) {
+  if ((grant as any).error) {
     console.log(`Error consuming pre-authorized code: ${(grant as any).error_description}`);
     throw new errors.InvalidRequest((grant as any).error);
   }
@@ -33,7 +32,7 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 
   const accountId = grant.account_id;
   if (!accountId) {
-    throw new errors.AccessDenied('invalid account_id')
+    throw new errors.AccessDenied('invalid account_id');
   }
 
   const token = new provider.AccessToken({
@@ -52,7 +51,7 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
   const rt = new provider.RefreshToken({
     accountId,
     client,
-    scope
+    scope,
   });
 
   const refreshToken = await rt.save();
@@ -63,22 +62,19 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
     expires_in: token.expiration,
     refresh_token: refreshToken,
   };
-
 }
 
 function decodeHeader(jwt: string) {
   const [header] = jwt.split('.');
-  return JSON.parse(
-    Buffer.from(header, 'base64url').toString('utf8')
-  );
+  return JSON.parse(Buffer.from(header, 'base64url').toString('utf8'));
 }
 
-async function validatePreAuthorizedCodeGrant(grant: PreAuthorizedCodeStoreItem, txCodeReceived: string | number ) {
-
+async function validatePreAuthorizedCodeGrant(
+  grant: PreAuthorizedCodeStoreItem,
+  txCodeReceived: string | number,
+) {
   if (!grant) {
-    throw new errors.InvalidGrant(
-      'unknown pre-authorized code',
-    );
+    throw new errors.InvalidGrant('unknown pre-authorized code');
   }
 
   const expectedTxCodeStructure = grant?.tx_code;
@@ -86,30 +82,22 @@ async function validatePreAuthorizedCodeGrant(grant: PreAuthorizedCodeStoreItem,
   const expectedExpDateMs = grant?.exp;
 
   if (expectedExpDateMs && expectedExpDateMs < Date.now()) {
-    throw new errors.InvalidGrant(
-      'pre-authorized code has expired',
-    );
+    throw new errors.InvalidGrant('pre-authorized code has expired');
   }
 
   if (expectedTxCodeStructure) {
     if (!txCodeReceived) {
-      throw new errors.InvalidRequest(
-        'tx_code required',
-      );
+      throw new errors.InvalidRequest('tx_code required');
     }
 
     const txCodeValidationResult = String(txCodeReceived) === String(expectedTxCodeValue);
 
     if (txCodeValidationResult === false) {
-      throw new errors.InvalidGrant(
-        'invalid tx_code',
-      );
+      throw new errors.InvalidGrant('invalid tx_code');
     }
   }
 
   if (!expectedTxCodeStructure && txCodeReceived) {
-    throw new errors.InvalidRequest(
-      'server does not expect tx_code'
-    )
+    throw new errors.InvalidRequest('server does not expect tx_code');
   }
 }

@@ -1,6 +1,6 @@
-import { afterAll, describe, expect, it } from "vitest";
-import Valkey from "iovalkey";
-import { createOidcValkeyAdapter } from "../../src/stores/OidcValkeyAdapter";
+import { afterAll, describe, expect, it } from 'vitest';
+import Valkey from 'iovalkey';
+import { createOidcValkeyAdapter } from '../../src/stores/OidcValkeyAdapter';
 
 const client = new Valkey({
   host: process.env.DATA_STORE_HOST,
@@ -12,26 +12,24 @@ afterAll(async () => {
   client.disconnect();
 });
 
-describe("oidc valkey adapter integration", () => {
-  it("persists session and grant data through real Valkey", async () => {
+describe('oidc valkey adapter integration', () => {
+  it('persists session and grant data through real Valkey', async () => {
     const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const sessionUid = `session-uid-${suffix}`;
     const sessionId = `session-${suffix}`;
     const grantId = `grant-${suffix}`;
     const accessTokenId = `access-token-${suffix}`;
 
-    const sessionAdapter = createOidcValkeyAdapter(client as any)("Session");
-    const accessTokenAdapter = createOidcValkeyAdapter(client as any)(
-      "AccessToken"
-    );
+    const sessionAdapter = createOidcValkeyAdapter(client as any)('Session');
+    const accessTokenAdapter = createOidcValkeyAdapter(client as any)('AccessToken');
 
     await sessionAdapter.upsert(
       sessionId,
       {
         uid: sessionUid,
-        accountId: "account-1",
+        accountId: 'account-1',
       } as any,
-      60
+      60,
     );
 
     await accessTokenAdapter.upsert(
@@ -39,26 +37,22 @@ describe("oidc valkey adapter integration", () => {
       {
         grantId,
         sessionUid,
-        clientId: "client-1",
+        clientId: 'client-1',
       } as any,
-      120
+      120,
     );
 
-    const restartedSessionAdapter = createOidcValkeyAdapter(client as any)(
-      "Session"
-    );
-    const restartedAccessTokenAdapter = createOidcValkeyAdapter(client as any)(
-      "AccessToken"
-    );
+    const restartedSessionAdapter = createOidcValkeyAdapter(client as any)('Session');
+    const restartedAccessTokenAdapter = createOidcValkeyAdapter(client as any)('AccessToken');
 
     expect(await restartedSessionAdapter.findByUid(sessionUid)).toMatchObject({
       uid: sessionUid,
-      accountId: "account-1",
+      accountId: 'account-1',
     });
     expect(await restartedAccessTokenAdapter.find(accessTokenId)).toMatchObject({
       grantId,
       sessionUid,
-      clientId: "client-1",
+      clientId: 'client-1',
     });
 
     await restartedAccessTokenAdapter.revokeByGrantId(grantId);
@@ -66,7 +60,7 @@ describe("oidc valkey adapter integration", () => {
     expect(await restartedAccessTokenAdapter.find(accessTokenId)).toBeUndefined();
     expect(await restartedSessionAdapter.findByUid(sessionUid)).toMatchObject({
       uid: sessionUid,
-      accountId: "account-1",
+      accountId: 'account-1',
     });
   });
 });

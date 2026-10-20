@@ -1,7 +1,7 @@
-import fs from "fs";
-import path from "path";
-import Account from "../account/Account";
-import IAccountSource from "../interfaces/IAccountSource";
+import fs from 'fs';
+import path from 'path';
+import Account from '../account/Account';
+import IAccountSource from '../interfaces/IAccountSource';
 
 type AccountRecord = {
   id: string;
@@ -16,11 +16,9 @@ type AccountsFile = {
   accounts: AccountRecord[];
 };
 
-const normalize = (value: string | undefined) =>
-  (value ?? "").trim().toLowerCase();
+const normalize = (value: string | undefined) => (value ?? '').trim().toLowerCase();
 
-const resolveAccountsFile = (): string =>
-  path.join(process.cwd(), "dataset/accounts.json");
+const resolveAccountsFile = (): string => path.join(process.cwd(), 'dataset/accounts.json');
 
 export class FileAccountSource implements IAccountSource {
   private accounts: Account[] = [];
@@ -28,7 +26,7 @@ export class FileAccountSource implements IAccountSource {
 
   constructor(filePath?: string) {
     const resolvedPath = filePath ?? resolveAccountsFile();
-    const raw = fs.readFileSync(resolvedPath, "utf-8");
+    const raw = fs.readFileSync(resolvedPath, 'utf-8');
     const parsed = JSON.parse(raw) as AccountsFile;
     this.records = parsed.accounts || [];
     this.accounts = this.records.map((record) => new Account(record.id, record));
@@ -47,7 +45,7 @@ export class FileAccountSource implements IAccountSource {
 
   public async matchClaims(claims: Record<string, string>) {
     const normalizedClaims = Object.fromEntries(
-      Object.entries(claims).map(([key, value]) => [key, normalize(value)])
+      Object.entries(claims).map(([key, value]) => [key, normalize(value)]),
     );
     const claimEntries = Object.entries(normalizedClaims);
     if (claimEntries.length === 0) {
@@ -55,7 +53,7 @@ export class FileAccountSource implements IAccountSource {
     }
 
     const record = this.records.find((acc) =>
-      claimEntries.every(([key, value]) => normalize(String(acc[key] ?? "")) === value)
+      claimEntries.every(([key, value]) => normalize(String(acc[key] ?? '')) === value),
     );
 
     if (!record) {

@@ -1,29 +1,23 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { AddressInfo } from "node:net";
-import { createServer, type Server } from "node:http";
-import request from "supertest";
-import { createApp } from "../../src/app";
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { AddressInfo } from 'node:net';
+import { createServer, type Server } from 'node:http';
+import request from 'supertest';
+import { createApp } from '../../src/app';
 
-vi.mock("openid-client", async () => {
-  const actual = await vi.importActual<typeof import("openid-client")>("openid-client");
+vi.mock('openid-client', async () => {
+  const actual = await vi.importActual<typeof import('openid-client')>('openid-client');
 
   const discoveryWithHttpAllowed: typeof actual.discovery = async (
     server,
     clientId,
     metadata,
     clientAuthentication,
-    options
+    options,
   ) => {
-    const configuration = await actual.discovery(
-      server,
-      clientId,
-      metadata,
-      clientAuthentication,
-      {
-        ...options,
-        execute: [...(options?.execute ?? []), actual.allowInsecureRequests],
-      }
-    );
+    const configuration = await actual.discovery(server, clientId, metadata, clientAuthentication, {
+      ...options,
+      execute: [...(options?.execute ?? []), actual.allowInsecureRequests],
+    });
     actual.allowInsecureRequests(configuration);
     return configuration;
   };
@@ -34,33 +28,33 @@ vi.mock("openid-client", async () => {
   };
 });
 
-describe("app integration", () => {
+describe('app integration', () => {
   const { app } = createApp();
-  const externalDemoUsername = "broker-demo-user";
-  const externalDemoPassword = "broker-demo-pass";
-  const brokerClientId = "test";
-  const brokerClientSecret = "test";
-  const externalRedirectUri = "http://localhost:9876/callback";
+  const externalDemoUsername = 'broker-demo-user';
+  const externalDemoPassword = 'broker-demo-pass';
+  const brokerClientId = 'test';
+  const brokerClientSecret = 'test';
+  const externalRedirectUri = 'http://localhost:9876/callback';
 
-  it("serves the home page", async () => {
-    const res = await request(app).get("/");
+  it('serves the home page', async () => {
+    const res = await request(app).get('/');
 
     expect(res.status).toBe(200);
-    expect(res.text).toContain("Wallet Authorization Server");
+    expect(res.text).toContain('Wallet Authorization Server');
   });
 
-  it("serves OIDC discovery metadata", async () => {
-    const res = await request(app).get("/.well-known/openid-configuration");
+  it('serves OIDC discovery metadata', async () => {
+    const res = await request(app).get('/.well-known/openid-configuration');
 
     expect(res.status).toBe(200);
-    expect(typeof res.body.issuer).toBe("string");
+    expect(typeof res.body.issuer).toBe('string');
     expect(res.body.issuer.length).toBeGreaterThan(0);
-    expect(typeof res.body.authorization_endpoint).toBe("string");
-    expect(typeof res.body.token_endpoint).toBe("string");
-    expect(typeof res.body.jwks_uri).toBe("string");
+    expect(typeof res.body.authorization_endpoint).toBe('string');
+    expect(typeof res.body.token_endpoint).toBe('string');
+    expect(typeof res.body.jwks_uri).toBe('string');
   });
 
-  describe("introspection flow", () => {
+  describe('introspection flow', () => {
     const originalEnv = process.env;
     let agent: request.SuperAgentTest;
     let externalAgent: request.SuperAgentTest;
@@ -79,34 +73,34 @@ describe("app integration", () => {
 
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
+        AUTHENTICATOR: 'user-pass-pid',
         SERVICE_URL: externalIssuer,
         USER_PASS_PID_DEMO_USERNAME: externalDemoUsername,
         USER_PASS_PID_DEMO_PASSWORD: externalDemoPassword,
       };
 
       vi.resetModules();
-      const { createApp: createExternalApp } = await import("../../src/app");
+      const { createApp: createExternalApp } = await import('../../src/app');
       const { app: externalApp } = createExternalApp();
       externalServer = await listenOnPort(externalApp, externalPort);
       externalAgent = request.agent(`http://127.0.0.1:${externalPort}`);
 
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "auth-broker",
+        AUTHENTICATOR: 'auth-broker',
         SERVICE_URL: brokerIssuer,
         AUTH_BROKER_PROVIDER_URL: externalIssuer,
         AUTH_BROKER_CLIENT_ID: brokerClientId,
         AUTH_BROKER_CLIENT_SECRET: brokerClientSecret,
-        AUTH_BROKER_SCOPE: "openid",
+        AUTH_BROKER_SCOPE: 'openid',
         AUTH_BROKER_REDIRECT_URI: externalRedirectUri,
-        AUTH_BROKER_SKIP_LOGOUT: "true",
-        INTROSPECTION_CLIENT: "introspect-client",
-        INTROSPECTION_CLIENT_SECRET: "introspect-secret",
+        AUTH_BROKER_SKIP_LOGOUT: 'true',
+        INTROSPECTION_CLIENT: 'introspect-client',
+        INTROSPECTION_CLIENT_SECRET: 'introspect-secret',
       };
 
       vi.resetModules();
-      const { createApp: createIntrospectionApp } = await import("../../src/app");
+      const { createApp: createIntrospectionApp } = await import('../../src/app');
       const { app: introspectionApp } = createIntrospectionApp();
       agent = request.agent(introspectionApp);
 
@@ -114,7 +108,7 @@ describe("app integration", () => {
         agent,
         externalAgent,
         externalIssuer,
-        brokerIssuer
+        brokerIssuer,
       );
       accessToken = tokenResponse.accessToken;
       introspectionPath = tokenResponse.introspectionPath;
@@ -128,42 +122,42 @@ describe("app integration", () => {
       }
     });
 
-    it("logs in at the external issuer and returns via broker callback", async () => {
+    it('logs in at the external issuer and returns via broker callback', async () => {
       expect(reachedBrokerCallback).toBe(true);
     });
 
     it("allows the token's client to introspect", async () => {
       const sameClientRes = await agent
         .post(introspectionPath)
-        .auth("test", "test")
-        .type("form")
+        .auth('test', 'test')
+        .type('form')
         .send({ token: accessToken })
         .expect(200);
       expect(sameClientRes.body.active).toBe(true);
     });
 
-    it("allows the configured introspection client to introspect", async () => {
+    it('allows the configured introspection client to introspect', async () => {
       const introspectionClientRes = await agent
         .post(introspectionPath)
-        .auth("introspect-client", "introspect-secret")
-        .type("form")
+        .auth('introspect-client', 'introspect-secret')
+        .type('form')
         .send({ token: accessToken })
         .expect(200);
       expect(introspectionClientRes.body.active).toBe(true);
     });
 
-    it("rejects an unrelated client", async () => {
+    it('rejects an unrelated client', async () => {
       const unrelatedClientRes = await agent
         .post(introspectionPath)
-        .auth("test2", "test2")
-        .type("form")
+        .auth('test2', 'test2')
+        .type('form')
         .send({ token: accessToken })
         .expect(200);
       expect(unrelatedClientRes.body.active).toBe(false);
     });
   });
 
-  describe("token ttl", () => {
+  describe('token ttl', () => {
     const originalEnv = process.env;
     let externalServer: Server;
 
@@ -174,7 +168,7 @@ describe("app integration", () => {
       }
     });
 
-    it("uses ACCESS_TOKEN_TTL for token response expires_in", async () => {
+    it('uses ACCESS_TOKEN_TTL for token response expires_in', async () => {
       const externalPort = await getFreePort();
       const brokerPort = await getFreePort();
       const externalIssuer = `http://127.0.0.1:${externalPort}`;
@@ -182,33 +176,33 @@ describe("app integration", () => {
 
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
+        AUTHENTICATOR: 'user-pass-pid',
         SERVICE_URL: externalIssuer,
         USER_PASS_PID_DEMO_USERNAME: externalDemoUsername,
         USER_PASS_PID_DEMO_PASSWORD: externalDemoPassword,
       };
 
       vi.resetModules();
-      const { createApp: createExternalApp } = await import("../../src/app");
+      const { createApp: createExternalApp } = await import('../../src/app');
       const { app: externalApp } = createExternalApp();
       externalServer = await listenOnPort(externalApp, externalPort);
       const externalAgent = request.agent(`http://127.0.0.1:${externalPort}`);
 
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "auth-broker",
+        AUTHENTICATOR: 'auth-broker',
         SERVICE_URL: brokerIssuer,
         AUTH_BROKER_PROVIDER_URL: externalIssuer,
         AUTH_BROKER_CLIENT_ID: brokerClientId,
         AUTH_BROKER_CLIENT_SECRET: brokerClientSecret,
-        AUTH_BROKER_SCOPE: "openid",
+        AUTH_BROKER_SCOPE: 'openid',
         AUTH_BROKER_REDIRECT_URI: externalRedirectUri,
-        AUTH_BROKER_SKIP_LOGOUT: "true",
-        ACCESS_TOKEN_TTL: "120",
+        AUTH_BROKER_SKIP_LOGOUT: 'true',
+        ACCESS_TOKEN_TTL: '120',
       };
 
       vi.resetModules();
-      const { createApp: createTtlApp } = await import("../../src/app");
+      const { createApp: createTtlApp } = await import('../../src/app');
       const { app: ttlApp } = createTtlApp();
       const agent = request.agent(ttlApp);
 
@@ -216,13 +210,13 @@ describe("app integration", () => {
         agent,
         externalAgent,
         externalIssuer,
-        brokerIssuer
+        brokerIssuer,
       );
       expect(tokenResponse.expiresIn).toBe(120);
     });
   });
 
-  describe("application restart", () => {
+  describe('application restart', () => {
     const originalEnv = process.env;
     let externalServer: Server;
 
@@ -230,10 +224,10 @@ describe("app integration", () => {
       process.env = originalEnv;
     });
 
-    it("can introspect tokens issued before the application restarted", async () => {
-    //
-    // Start external issuer
-    //
+    it('can introspect tokens issued before the application restarted', async () => {
+      //
+      // Start external issuer
+      //
 
       const externalPort = await getFreePort();
       const brokerPort = await getFreePort();
@@ -243,7 +237,7 @@ describe("app integration", () => {
 
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
+        AUTHENTICATOR: 'user-pass-pid',
         SERVICE_URL: externalIssuer,
         USER_PASS_PID_DEMO_USERNAME: externalDemoUsername,
         USER_PASS_PID_DEMO_PASSWORD: externalDemoPassword,
@@ -251,7 +245,7 @@ describe("app integration", () => {
 
       vi.resetModules();
 
-      const { createApp } = await import("../../src/app");
+      const { createApp } = await import('../../src/app');
 
       const { app: externalApp } = createApp();
 
@@ -265,14 +259,14 @@ describe("app integration", () => {
 
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "auth-broker",
+        AUTHENTICATOR: 'auth-broker',
         SERVICE_URL: brokerIssuer,
         AUTH_BROKER_PROVIDER_URL: externalIssuer,
         AUTH_BROKER_CLIENT_ID: brokerClientId,
         AUTH_BROKER_CLIENT_SECRET: brokerClientSecret,
-        AUTH_BROKER_SCOPE: "openid",
+        AUTH_BROKER_SCOPE: 'openid',
         AUTH_BROKER_REDIRECT_URI: externalRedirectUri,
-        AUTH_BROKER_SKIP_LOGOUT: "true",
+        AUTH_BROKER_SKIP_LOGOUT: 'true',
       };
 
       //
@@ -281,12 +275,7 @@ describe("app integration", () => {
 
       const firstAgent = await createBrokerApp();
 
-      const token = await issueAccessToken(
-        firstAgent,
-        externalAgent,
-        externalIssuer,
-        brokerIssuer
-      );
+      const token = await issueAccessToken(firstAgent, externalAgent, externalIssuer, brokerIssuer);
 
       //
       // "Restart"
@@ -296,8 +285,8 @@ describe("app integration", () => {
 
       const introspection = await secondAgent
         .post(token.introspectionPath)
-        .auth("test", "test")
-        .type("form")
+        .auth('test', 'test')
+        .type('form')
         .send({
           token: token.accessToken,
         })
@@ -313,26 +302,22 @@ function extractInteractionUid(location: string) {
   if (!match) {
     throw new Error(`Missing interaction uid in location: ${location}`);
   }
-  if (match[1] === "authBroker") {
+  if (match[1] === 'authBroker') {
     throw new Error(`Location is auth-broker callback, not interaction uid: ${location}`);
   }
   return match[1];
 }
 
 function normalizeLocation(location: string) {
-  if (!location.startsWith("http://") && !location.startsWith("https://")) {
-    const path = location.startsWith("/") ? location : `/${location}`;
+  if (!location.startsWith('http://') && !location.startsWith('https://')) {
+    const path = location.startsWith('/') ? location : `/${location}`;
     return path;
   }
   const url = new URL(location);
   return `${url.pathname}${url.search}`;
 }
 
-async function followRedirectsToOk(
-  agent: request.SuperAgentTest,
-  location: string,
-  maxHops = 5
-) {
+async function followRedirectsToOk(agent: request.SuperAgentTest, location: string, maxHops = 5) {
   let nextLocation = normalizeLocation(location);
   for (let hop = 0; hop < maxHops; hop += 1) {
     const res = await agent.get(nextLocation);
@@ -353,7 +338,7 @@ async function followRedirectsToOkAcrossOrigins(
   brokerAgent: request.SuperAgentTest,
   externalIssuer: string,
   brokerIssuer: string,
-  maxHops = 8
+  maxHops = 8,
 ) {
   const externalOrigin = new URL(externalIssuer).origin;
   const brokerOrigin = new URL(brokerIssuer).origin;
@@ -378,7 +363,7 @@ async function followRedirectsToOkAcrossOrigins(
     }
     if (!res.headers.location) {
       throw new Error(
-        `Expected redirect location, got ${res.status} for ${url.origin}${normalizedPath}`
+        `Expected redirect location, got ${res.status} for ${url.origin}${normalizedPath}`,
       );
     }
     nextLocation = res.headers.location as string;
@@ -391,7 +376,7 @@ async function followRedirectsToAuthCode(
   agent: request.SuperAgentTest,
   location: string,
   redirectUri: string,
-  maxHops = 5
+  maxHops = 5,
 ) {
   let nextLocation = location;
   for (let hop = 0; hop < maxHops; hop += 1) {
@@ -404,7 +389,7 @@ async function followRedirectsToAuthCode(
     const res = await agent.get(normalized);
     if (!res.headers.location) {
       throw new Error(
-        `Expected redirect location, got ${res.status} for next='${nextLocation}' normalized='${normalized}'`
+        `Expected redirect location, got ${res.status} for next='${nextLocation}' normalized='${normalized}'`,
       );
     }
     nextLocation = res.headers.location as string;
@@ -414,11 +399,11 @@ async function followRedirectsToAuthCode(
 
 function tryExtractAuthCode(location: string, redirectUri: string) {
   try {
-    const url = new URL(location, "http://localhost");
+    const url = new URL(location, 'http://localhost');
     if (!url.href.startsWith(redirectUri)) {
       return null;
     }
-    return url.searchParams.get("code");
+    return url.searchParams.get('code');
   } catch {
     return null;
   }
@@ -428,25 +413,23 @@ async function issueAccessToken(
   agent: request.SuperAgentTest,
   externalAgent: request.SuperAgentTest,
   externalIssuer: string,
-  brokerIssuer: string
+  brokerIssuer: string,
 ) {
   const authRes = await agent
-    .get("/auth")
+    .get('/auth')
     .query({
-      client_id: "test",
-      redirect_uri: "http://localhost:9876/callback",
-      response_type: "code",
-      scope: "openid",
-      state: "state-123",
+      client_id: 'test',
+      redirect_uri: 'http://localhost:9876/callback',
+      response_type: 'code',
+      scope: 'openid',
+      state: 'state-123',
     })
     .expect(303);
 
   const authLocation = authRes.headers.location;
   expect(authLocation).toBeTruthy();
 
-  const brokerRedirectRes = await agent
-    .get(normalizeLocation(authLocation as string))
-    .expect(302);
+  const brokerRedirectRes = await agent.get(normalizeLocation(authLocation as string)).expect(302);
   const externalAuthorizeUrl = new URL(brokerRedirectRes.headers.location as string);
 
   const externalAuthRes = await externalAgent
@@ -458,27 +441,27 @@ async function issueAccessToken(
     externalAgent,
     agent,
     externalIssuer,
-    brokerIssuer
+    brokerIssuer,
   );
   const externalInteractionUid = extractInteractionUid(externalInteractionPage.location);
 
   const externalLoginRes = await externalAgent
     .post(`/interaction/${externalInteractionUid}/login`)
-    .type("form")
-    .send({ login: "broker-demo-user", password: "broker-demo-pass" })
+    .type('form')
+    .send({ login: 'broker-demo-user', password: 'broker-demo-pass' })
     .expect(303);
 
   const externalConsentLocation = externalLoginRes.headers.location;
   expect(externalConsentLocation).toBeTruthy();
   const externalConsentPage = await followRedirectsToOk(
     externalAgent,
-    externalConsentLocation as string
+    externalConsentLocation as string,
   );
   const externalConsentUid = extractInteractionUid(externalConsentPage.location);
 
   const externalConsentRes = await externalAgent
     .post(`/interaction/${externalConsentUid}/confirm`)
-    .type("form")
+    .type('form')
     .send({})
     .expect((res) => {
       if (res.status !== 302 && res.status !== 303) {
@@ -491,38 +474,33 @@ async function issueAccessToken(
     externalAgent,
     agent,
     externalIssuer,
-    brokerIssuer
+    brokerIssuer,
   );
-  const brokerCallbackUrl = normalizeToBrokerCallbackUrl(
-    brokerCallbackLocation,
-    brokerIssuer
-  );
+  const brokerCallbackUrl = normalizeToBrokerCallbackUrl(brokerCallbackLocation, brokerIssuer);
   const reachedBrokerCallback = brokerCallbackUrl.startsWith(
-    `${brokerIssuer}/interaction/authBroker/callback`
+    `${brokerIssuer}/interaction/authBroker/callback`,
   );
 
-  const brokerCallbackRes = await agent
-    .get(normalizeLocation(brokerCallbackUrl))
-    .expect((res) => {
-      if (res.status !== 302 && res.status !== 303) {
-        throw new Error(`Unexpected status ${res.status}`);
-      }
-    });
+  const brokerCallbackRes = await agent.get(normalizeLocation(brokerCallbackUrl)).expect((res) => {
+    if (res.status !== 302 && res.status !== 303) {
+      throw new Error(`Unexpected status ${res.status}`);
+    }
+  });
 
   const code = await followRedirectsToAuthCode(
     agent,
     brokerCallbackRes.headers.location as string,
-    "http://localhost:9876/callback"
+    'http://localhost:9876/callback',
   );
 
   const tokenRes = await agent
-    .post("/token")
-    .auth("test", "test")
-    .type("form")
+    .post('/token')
+    .auth('test', 'test')
+    .type('form')
     .send({
-      grant_type: "authorization_code",
+      grant_type: 'authorization_code',
       code,
-      redirect_uri: "http://localhost:9876/callback",
+      redirect_uri: 'http://localhost:9876/callback',
     })
     .expect(200);
 
@@ -530,24 +508,17 @@ async function issueAccessToken(
   expect(accessToken).toBeTruthy();
   const expiresIn = tokenRes.body.expires_in as number;
 
-  const discoveryRes = await agent
-    .get("/.well-known/openid-configuration")
-    .expect(200);
+  const discoveryRes = await agent.get('/.well-known/openid-configuration').expect(200);
 
-  const introspectionPath = new URL(
-    discoveryRes.body.introspection_endpoint as string
-  ).pathname;
+  const introspectionPath = new URL(discoveryRes.body.introspection_endpoint as string).pathname;
 
   return { accessToken, introspectionPath, expiresIn, reachedBrokerCallback };
 }
 
 function normalizeToBrokerCallbackUrl(location: string, brokerIssuer: string) {
-  const url = new URL(location, "http://localhost");
+  const url = new URL(location, 'http://localhost');
   const brokerOrigin = new URL(brokerIssuer).origin;
-  if (
-    url.origin === brokerOrigin &&
-    url.pathname === "/interaction/authBroker/callback"
-  ) {
+  if (url.origin === brokerOrigin && url.pathname === '/interaction/authBroker/callback') {
     return url.toString();
   }
   return `${brokerIssuer}/interaction/authBroker/callback${url.search}`;
@@ -559,7 +530,7 @@ async function followRedirectsToBrokerCallback(
   brokerAgent: request.SuperAgentTest,
   externalIssuer: string,
   brokerIssuer: string,
-  maxHops = 8
+  maxHops = 8,
 ) {
   const externalOrigin = new URL(externalIssuer).origin;
   const brokerOrigin = new URL(brokerIssuer).origin;
@@ -567,10 +538,7 @@ async function followRedirectsToBrokerCallback(
 
   for (let hop = 0; hop < maxHops; hop += 1) {
     const url = new URL(nextLocation, externalOrigin);
-    if (
-      url.origin === brokerOrigin &&
-      url.pathname === "/interaction/authBroker/callback"
-    ) {
+    if (url.origin === brokerOrigin && url.pathname === '/interaction/authBroker/callback') {
       return url.toString();
     }
 
@@ -586,13 +554,13 @@ async function followRedirectsToBrokerCallback(
     nextLocation = res.headers.location as string;
   }
 
-  throw new Error("Too many redirects while trying to reach broker callback");
+  throw new Error('Too many redirects while trying to reach broker callback');
 }
 
 async function createBrokerApp() {
   vi.resetModules();
 
-  const { createApp } = await import("../../src/app");
+  const { createApp } = await import('../../src/app');
 
   const { app } = createApp();
 
@@ -602,8 +570,8 @@ async function createBrokerApp() {
 function listenOnPort(app: Parameters<typeof createServer>[0], port: number) {
   return new Promise<Server>((resolve, reject) => {
     const server = createServer(app);
-    server.once("error", reject);
-    server.listen(port, "127.0.0.1", () => {
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', () => {
       resolve(server);
     });
   });
@@ -624,8 +592,8 @@ function closeServer(server: Server) {
 function getFreePort() {
   return new Promise<number>((resolve, reject) => {
     const probe = createServer();
-    probe.once("error", reject);
-    probe.listen(0, "127.0.0.1", () => {
+    probe.once('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
       const address = probe.address() as AddressInfo;
       const { port } = address;
       probe.close((err) => {
