@@ -2,6 +2,7 @@ import eslint from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import prettierConfig from 'eslint-config-prettier/flat';
 
 const typescriptFiles = ['{src,test}/**/*.ts', '*.ts'];
 
@@ -32,4 +33,5 @@ export default defineConfig(
       'no-undef': 'error',
     },
   },
+  prettierConfig,
 );
