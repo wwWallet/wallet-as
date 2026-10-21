@@ -35,7 +35,6 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-
 .consent__app-circle img {
   width: 70%;
   height: 70%;
@@ -52,7 +51,7 @@
 }
 
 .consent__connector::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   right: 0;

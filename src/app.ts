@@ -1,33 +1,33 @@
-import express from "express";
-import path from "path";
-import * as oidc from "oidc-provider";
-import interactions from "./routes/interactions";
-import { DemoAccountSource } from "./account/DemoAccountSource";
-import { FileAccountSource } from "./account/FileAccountSource";
-import { introspectionAllowedPolicy } from "./util/introspectionHelpers";
-import config from "./config";
-import { interactionPolicies } from "./policies/interactionPolicies";
-import { issueRefreshToken } from "./policies/issueRefreshToken";
-import { loadAuthenticator } from "./authenticators";
+import express from 'express';
+import path from 'path';
+import * as oidc from 'oidc-provider';
+import interactions from './routes/interactions';
+import { DemoAccountSource } from './account/DemoAccountSource';
+import { FileAccountSource } from './account/FileAccountSource';
+import { introspectionAllowedPolicy } from './util/introspectionHelpers';
+import config from './config';
+import { interactionPolicies } from './policies/interactionPolicies';
+import { issueRefreshToken } from './policies/issueRefreshToken';
+import { loadAuthenticator } from './authenticators';
 import {
   consumeIssuerStateForAuthorizationCode,
   saveIssuerStateForAuthorizationCode,
-} from "./stores/issuerStateStore";
-import { dataStoreClient } from "./stores/dataStoreClient";
-import { createOidcValkeyAdapter } from "./stores/OidcValkeyAdapter";
-import preAuthorizedCodeHandler from "./oid4vci/preAuthorizedCodeHandler";
+} from './stores/issuerStateStore';
+import { dataStoreClient } from './stores/dataStoreClient';
+import { createOidcValkeyAdapter } from './stores/OidcValkeyAdapter';
+import preAuthorizedCodeHandler from './oid4vci/preAuthorizedCodeHandler';
 
 export function createApp() {
   const app = express();
   app.set('trust proxy', true);
   const authenticator = loadAuthenticator(config.authenticator);
   // Keep templates alongside source for both ts-node and compiled runs.
-  const viewsPath = path.join(__dirname, "../src/views");
+  const viewsPath = path.join(__dirname, '../src/views');
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-  app.set("views", viewsPath);
-  app.set("view engine", "pug");
+  app.set('views', viewsPath);
+  app.set('view engine', 'pug');
   app.locals.baseUrl = config.serviceUrl;
   app.locals.demoMode = config.demoUsername || false;
   app.locals.demoUsername = config.demoUsername;
@@ -36,11 +36,11 @@ export function createApp() {
   const oidClients: oidc.ClientMetadata[] = [...config.oidClients];
 
   if (config.introspectionClient && config.introspectionClientSecret) {
-    console.log("Adding introspection client");
+    console.log('Adding introspection client');
     oidClients.push({
       client_id: config.introspectionClient,
       client_secret: config.introspectionClientSecret,
-      redirect_uris: ["http://localhost"],
+      redirect_uris: ['http://localhost'],
     });
   }
 
@@ -50,23 +50,27 @@ export function createApp() {
     jwks: config.oidcJwks,
 
     discovery: {
-      ...(config.preAuthorizedCredentialIssuance ? {
-        "pre-authorized_grant_anonymous_access_supported": true,
-      } : {}),
+      ...(config.preAuthorizedCredentialIssuance
+        ? {
+            'pre-authorized_grant_anonymous_access_supported': true,
+          }
+        : {}),
     },
     scopes: config.scopes,
     interactions: {
       policy: interactionPolicies(),
       url(ctx, interaction) {
-        if (interaction.prompt.name === "login") {
+        if (interaction.prompt.name === 'login') {
           const loginUrl = authenticator.getLoginInteractionUrl(interaction);
           if (loginUrl) {
             return loginUrl;
           }
-          throw new Error("No login interaction URL could be resolved from configured authenticator");
+          throw new Error(
+            'No login interaction URL could be resolved from configured authenticator',
+          );
         }
         return `${config.basePath}/interaction/${interaction.uid}`;
-      }
+      },
     },
     features: {
       devInteractions: { enabled: false },
@@ -88,9 +92,9 @@ export function createApp() {
           }
 
           return {
-            scope: config.scopes.join(" "),
+            scope: config.scopes.join(' '),
             audience: resourceIndicator,
-          }
+          };
         },
         async defaultResource(_ctx, _client, oneOf) {
           if (oneOf && oneOf.length > 0) {
@@ -117,41 +121,35 @@ export function createApp() {
     extraParams: ['issuer_state'],
     async extraTokenClaims(ctx, _token) {
       const issuerState = await consumeIssuerStateForAuthorizationCode(
-        (ctx.oidc.entities.AuthorizationCode as any)?.jti
+        (ctx.oidc.entities.AuthorizationCode as any)?.jti,
       );
       return issuerState ? { issuer_state: issuerState } : undefined;
     },
   });
-  provider.on("authorization_code.saved", (authorizationCode) => {
+  provider.on('authorization_code.saved', (authorizationCode) => {
     const issuerState = (oidc.Provider.ctx?.oidc.params as any)?.issuer_state;
-    void saveIssuerStateForAuthorizationCode(
-      authorizationCode.jti,
-      issuerState
-    );
+    void saveIssuerStateForAuthorizationCode(authorizationCode.jti, issuerState);
   });
   provider.proxy = true;
-  const accountSource = config.demoUsername
-    ? new DemoAccountSource()
-    : new FileAccountSource();
+  const accountSource = config.demoUsername ? new DemoAccountSource() : new FileAccountSource();
 
   const routesRoot = express.Router();
-  routesRoot.use(express.static(path.join(process.cwd(), "public")));
-  routesRoot.get("/", (_req, res) => res.render("index"));
+  routesRoot.use(express.static(path.join(process.cwd(), 'public')));
+  routesRoot.get('/', (_req, res) => res.render('index'));
   authenticator.registerRoutes(routesRoot, provider, accountSource);
   interactions(routesRoot, provider, accountSource, authenticator);
 
-
   if (config.preAuthorizedCredentialIssuance) {
     provider.registerGrantType(
-      "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+      'urn:ietf:params:oauth:grant-type:pre-authorized_code',
       preAuthorizedCodeHandler,
-      ["pre-authorized_code", "tx_code"],
-      []
+      ['pre-authorized_code', 'tx_code'],
+      [],
     );
 
-    routesRoot.post("/token", (req, _res, next) => {
-      if (req.body?.grant_type === "urn:ietf:params:oauth:grant-type:pre-authorized_code") {
-        req.body.client_id = "__pre-authorized_code_client__";
+    routesRoot.post('/token', (req, _res, next) => {
+      if (req.body?.grant_type === 'urn:ietf:params:oauth:grant-type:pre-authorized_code') {
+        req.body.client_id = '__pre-authorized_code_client__';
       }
 
       next();
@@ -159,7 +157,7 @@ export function createApp() {
   }
 
   routesRoot.use(provider.callback());
-  app.use(config.basePath || "/", routesRoot);
+  app.use(config.basePath || '/', routesRoot);
 
   return { app, provider };
 }

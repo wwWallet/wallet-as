@@ -1,12 +1,12 @@
-import Express from "express";
-import Provider from "oidc-provider";
-import IAccountSource from "../interfaces/IAccountSource";
-import { createVctProviderFromEnv } from "../util/vctResolution";
-import { getConsentPreviewDataUri } from "../util/consentPreview";
-import { Authenticator } from "../authenticators";
-import { prependToPath } from "wallet-common";
+import Express from 'express';
+import Provider from 'oidc-provider';
+import IAccountSource from '../interfaces/IAccountSource';
+import { createVctProviderFromEnv } from '../util/vctResolution';
+import { getConsentPreviewDataUri } from '../util/consentPreview';
+import { Authenticator } from '../authenticators';
+import { prependToPath } from 'wallet-common';
 
-export const DATA_URI_FALLBACK = "/images/fallback-credential.svg";
+export const DATA_URI_FALLBACK = '/images/fallback-credential.svg';
 
 const vctEngine = createVctProviderFromEnv();
 
@@ -14,9 +14,11 @@ export default (
   app: Express.Router,
   provider: Provider,
   _accountSource: IAccountSource,
-  authenticator: Authenticator
+  authenticator: Authenticator,
 ) => {
-  const buildConsentResult = async (interaction: Awaited<ReturnType<typeof provider.interactionDetails>>) => {
+  const buildConsentResult = async (
+    interaction: Awaited<ReturnType<typeof provider.interactionDetails>>,
+  ) => {
     const {
       prompt: { name },
       params,
@@ -52,7 +54,8 @@ export default (
     if (details.missingOIDCClaims) {
       grant.addOIDCClaims(details.missingOIDCClaims);
     }
-    const missingResourceScopes = details.missingResourceScopes as Record<string, string[]> | undefined;
+    const missingResourceScopes = details.missingResourceScopes as
+      Record<string, string[]> | undefined;
     if (missingResourceScopes) {
       for (const [indicator, scopes] of Object.entries(missingResourceScopes)) {
         grant.addResourceScope(indicator, (scopes as string[]).join(' '));
@@ -71,42 +74,39 @@ export default (
   };
 
   app.get('/interaction/:uid', async (req, res, next) => {
-      try {
-        const interaction = await provider.interactionDetails(req, res);
-        const {
-          uid, prompt, params, session,
-        } = interaction;
+    try {
+      const interaction = await provider.interactionDetails(req, res);
+      const { uid, prompt, params, session } = interaction;
 
-        const client = await provider.Client.find(params.client_id as string);
-        console.log(uid, prompt, params, session, client)
-        let issuerMetadata: any = null;
-        let credentialConfigs: Array<{scope: string, vct: string | null, display: any}> = [];
-        if (prompt.name === 'consent') {
-          const issuerIdentifier = params.resource as string | undefined;
-          const issuerMetadataUrl = prependToPath(
-            issuerIdentifier ?? '',
-            '.well-known/openid-credential-issuer'
-          );
-          if (issuerMetadataUrl) {
-            try {
-              const issuerMetadataResponse = await fetch(issuerMetadataUrl, {
-                headers: {
-                  'Accept': 'application/json',
-                },
-              });
-              if (issuerMetadataResponse.ok) {
-                issuerMetadata = await issuerMetadataResponse.json();
-              }
-              if (issuerMetadata) {
+      const client = await provider.Client.find(params.client_id as string);
+      console.log(uid, prompt, params, session, client);
+      let issuerMetadata: any = null;
+      let credentialConfigs: Array<{ scope: string; vct: string | null; display: any }> = [];
+      if (prompt.name === 'consent') {
+        const issuerIdentifier = params.resource as string | undefined;
+        const issuerMetadataUrl = prependToPath(
+          issuerIdentifier ?? '',
+          '.well-known/openid-credential-issuer',
+        );
+        if (issuerMetadataUrl) {
+          try {
+            const issuerMetadataResponse = await fetch(issuerMetadataUrl, {
+              headers: {
+                Accept: 'application/json',
+              },
+            });
+            if (issuerMetadataResponse.ok) {
+              issuerMetadata = await issuerMetadataResponse.json();
+            }
+            if (issuerMetadata) {
+              const vctScope = String(params.scope || '')
+                .trim()
+                .split(/\s+/)
+                .filter((scope) => scope !== 'openid')
+                .join(' ');
 
-                const vctScope = String(params.scope || "")
-                  .trim()
-                  .split(/\s+/)
-                  .filter(scope => scope !== "openid")
-                  .join(" ");
-
-                credentialConfigs = vctScope
-                .split(" ")
+              credentialConfigs = vctScope
+                .split(' ')
                 .filter(Boolean)
                 .map((scope: string) => {
                   const configs = issuerMetadata?.credential_configurations_supported ?? {};
@@ -117,80 +117,80 @@ export default (
                     display: cfg?.credential_metadata.display ?? null,
                   };
                 });
-              }
-            } catch (err) {
-              console.error('Could not fetch issuer metadata:', err);
             }
+          } catch (err) {
+            console.error('Could not fetch issuer metadata:', err);
           }
         }
-
-        switch (prompt.name) {
-          case 'login': {
-            return res.sendStatus(404);
-          }
-          case 'consent': {
-            const shouldAutoApproveConsent =
-              authenticator.shouldAutoApproveConsent?.(interaction) === true;
-            if (shouldAutoApproveConsent) {
-              const result = await buildConsentResult(interaction);
-              await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: true });
-              return undefined;
-            }
-
-            const cfg0 = credentialConfigs[0];
-            let dataUri = "/images/fallback-credential.svg";
-            try {
-              const preview = await getConsentPreviewDataUri({
-                vctEngine,
-                vct: cfg0?.vct,
-                issuerDisplayArray: cfg0?.display,
-                langs: ["en-US"],
-              });
-              dataUri = preview.dataUri || DATA_URI_FALLBACK;
-            } catch (error) {
-              console.warn('Could not generate AS consent credential preview:', error);
-            }
-
-            return res.render('consent', {
-              client,
-              uid,
-              details: prompt.details,
-              params,
-              credentialConfigs,
-              dataUri,
-              fallbackDataUri: DATA_URI_FALLBACK
-            });
-          }
-          default:
-            return undefined;
-        }
-      } catch (err) {
-        return next(err);
       }
-    });
 
-  app.post('/interaction/:uid/confirm', async (req, res, next) => {
-      try {
-        const interaction = await provider.interactionDetails(req, res);
-        if (interaction.prompt.name !== 'consent') {
+      switch (prompt.name) {
+        case 'login': {
           return res.sendStatus(404);
         }
-        const result = await buildConsentResult(interaction);
-        await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: true });
-      } catch (err) {
-        next(err);
-      }
-    });
+        case 'consent': {
+          const shouldAutoApproveConsent =
+            authenticator.shouldAutoApproveConsent?.(interaction) === true;
+          if (shouldAutoApproveConsent) {
+            const result = await buildConsentResult(interaction);
+            await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: true });
+            return undefined;
+          }
 
-    app.post('/interaction/:uid/abort', async (req, res, next) => {
-      try {
-        const result = {
-          error: 'access_denied',
-          error_description: 'End-User aborted interaction',
-        };
-        await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
-      } catch (err) {
-        next(err);
+          const cfg0 = credentialConfigs[0];
+          let dataUri = '/images/fallback-credential.svg';
+          try {
+            const preview = await getConsentPreviewDataUri({
+              vctEngine,
+              vct: cfg0?.vct,
+              issuerDisplayArray: cfg0?.display,
+              langs: ['en-US'],
+            });
+            dataUri = preview.dataUri || DATA_URI_FALLBACK;
+          } catch (error) {
+            console.warn('Could not generate AS consent credential preview:', error);
+          }
+
+          return res.render('consent', {
+            client,
+            uid,
+            details: prompt.details,
+            params,
+            credentialConfigs,
+            dataUri,
+            fallbackDataUri: DATA_URI_FALLBACK,
+          });
+        }
+        default:
+          return undefined;
       }
-    });
-}
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  app.post('/interaction/:uid/confirm', async (req, res, next) => {
+    try {
+      const interaction = await provider.interactionDetails(req, res);
+      if (interaction.prompt.name !== 'consent') {
+        return res.sendStatus(404);
+      }
+      const result = await buildConsentResult(interaction);
+      await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/interaction/:uid/abort', async (req, res, next) => {
+    try {
+      const result = {
+        error: 'access_denied',
+        error_description: 'End-User aborted interaction',
+      };
+      await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
+    } catch (err) {
+      next(err);
+    }
+  });
+};
