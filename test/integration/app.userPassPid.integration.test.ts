@@ -1,29 +1,29 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import request from "supertest";
-import { createApp } from "../../src/app";
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import request from 'supertest';
+import { createApp } from '../../src/app';
 
-describe("app integration", () => {
+describe('app integration', () => {
   const { app } = createApp();
 
-  it("serves the home page", async () => {
-    const res = await request(app).get("/");
+  it('serves the home page', async () => {
+    const res = await request(app).get('/');
 
     expect(res.status).toBe(200);
-    expect(res.text).toContain("Wallet Authorization Server");
+    expect(res.text).toContain('Wallet Authorization Server');
   });
 
-  it("serves OIDC discovery metadata", async () => {
-    const res = await request(app).get("/.well-known/openid-configuration");
+  it('serves OIDC discovery metadata', async () => {
+    const res = await request(app).get('/.well-known/openid-configuration');
 
     expect(res.status).toBe(200);
-    expect(typeof res.body.issuer).toBe("string");
+    expect(typeof res.body.issuer).toBe('string');
     expect(res.body.issuer.length).toBeGreaterThan(0);
-    expect(typeof res.body.authorization_endpoint).toBe("string");
-    expect(typeof res.body.token_endpoint).toBe("string");
-    expect(typeof res.body.jwks_uri).toBe("string");
+    expect(typeof res.body.authorization_endpoint).toBe('string');
+    expect(typeof res.body.token_endpoint).toBe('string');
+    expect(typeof res.body.jwks_uri).toBe('string');
   });
 
-  describe("introspection flow", () => {
+  describe('introspection flow', () => {
     const originalEnv = process.env;
     let agent: request.SuperAgentTest;
     let accessToken: string;
@@ -32,13 +32,13 @@ describe("app integration", () => {
     beforeAll(async () => {
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
-        INTROSPECTION_CLIENT: "introspect-client",
-        INTROSPECTION_CLIENT_SECRET: "introspect-secret",
+        AUTHENTICATOR: 'user-pass-pid',
+        INTROSPECTION_CLIENT: 'introspect-client',
+        INTROSPECTION_CLIENT_SECRET: 'introspect-secret',
       };
 
       vi.resetModules();
-      const { createApp: createIntrospectionApp } = await import("../../src/app");
+      const { createApp: createIntrospectionApp } = await import('../../src/app');
       const { app: introspectionApp } = createIntrospectionApp();
       agent = request.agent(introspectionApp);
 
@@ -54,70 +54,68 @@ describe("app integration", () => {
     it("allows the token's client to introspect", async () => {
       const sameClientRes = await agent
         .post(introspectionPath)
-        .auth("test", "test")
-        .type("form")
+        .auth('test', 'test')
+        .type('form')
         .send({ token: accessToken })
         .expect(200);
       expect(sameClientRes.body.active).toBe(true);
     });
 
-    it("allows the configured introspection client to introspect", async () => {
+    it('allows the configured introspection client to introspect', async () => {
       const introspectionClientRes = await agent
         .post(introspectionPath)
-        .auth("introspect-client", "introspect-secret")
-        .type("form")
+        .auth('introspect-client', 'introspect-secret')
+        .type('form')
         .send({ token: accessToken })
         .expect(200);
       expect(introspectionClientRes.body.active).toBe(true);
     });
 
-    it("rejects an unrelated client", async () => {
+    it('rejects an unrelated client', async () => {
       const unrelatedClientRes = await agent
         .post(introspectionPath)
-        .auth("test2", "test2")
-        .type("form")
+        .auth('test2', 'test2')
+        .type('form')
         .send({ token: accessToken })
         .expect(200);
       expect(unrelatedClientRes.body.active).toBe(false);
     });
 
-    it("accepts issuer_state in pushed authorization requests", async () => {
-      const discoveryRes = await agent
-        .get("/.well-known/openid-configuration")
-        .expect(200);
+    it('accepts issuer_state in pushed authorization requests', async () => {
+      const discoveryRes = await agent.get('/.well-known/openid-configuration').expect(200);
       const pushedAuthPath = new URL(
-        discoveryRes.body.pushed_authorization_request_endpoint as string
+        discoveryRes.body.pushed_authorization_request_endpoint as string,
       ).pathname;
 
       const parRes = await agent
         .post(pushedAuthPath)
-        .auth("test", "test")
-        .type("form")
+        .auth('test', 'test')
+        .type('form')
         .send({
-          client_id: "test",
-          redirect_uri: "http://localhost:9876/callback",
-          response_type: "code",
-          scope: "openid",
-          state: "state-123",
-          issuer_state: "issuer-state-123",
+          client_id: 'test',
+          redirect_uri: 'http://localhost:9876/callback',
+          response_type: 'code',
+          scope: 'openid',
+          state: 'state-123',
+          issuer_state: 'issuer-state-123',
         })
         .expect(201);
 
-      expect(typeof parRes.body.request_uri).toBe("string");
+      expect(typeof parRes.body.request_uri).toBe('string');
       expect(parRes.body.request_uri.length).toBeGreaterThan(0);
-      expect(typeof parRes.body.expires_in).toBe("number");
+      expect(typeof parRes.body.expires_in).toBe('number');
     });
 
-    it("returns issuer_state in introspection after token issuance", async () => {
-      const issuerState = "issuer-state-123";
+    it('returns issuer_state in introspection after token issuance', async () => {
+      const issuerState = 'issuer-state-123';
       const tokenResponse = await issueAccessToken(agent, {
         issuer_state: issuerState,
       });
 
       const introspectionRes = await agent
         .post(tokenResponse.introspectionPath)
-        .auth("test", "test")
-        .type("form")
+        .auth('test', 'test')
+        .type('form')
         .send({ token: tokenResponse.accessToken })
         .expect(200);
 
@@ -125,16 +123,16 @@ describe("app integration", () => {
       expect(introspectionRes.body.issuer_state).toBe(issuerState);
     });
 
-    it("returns a huge issuer_state in introspection after token issuance", async () => {
-      const issuerState = "x".repeat(10_000);
+    it('returns a huge issuer_state in introspection after token issuance', async () => {
+      const issuerState = 'x'.repeat(10_000);
       const tokenResponse = await issueAccessToken(agent, {
         issuer_state: issuerState,
       });
 
       const introspectionRes = await agent
         .post(tokenResponse.introspectionPath)
-        .auth("test", "test")
-        .type("form")
+        .auth('test', 'test')
+        .type('form')
         .send({ token: tokenResponse.accessToken })
         .expect(200);
 
@@ -143,22 +141,22 @@ describe("app integration", () => {
     });
   });
 
-  describe("token ttl", () => {
+  describe('token ttl', () => {
     const originalEnv = process.env;
 
     afterAll(() => {
       process.env = originalEnv;
     });
 
-    it("uses ACCESS_TOKEN_TTL for token response expires_in", async () => {
+    it('uses ACCESS_TOKEN_TTL for token response expires_in', async () => {
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
-        ACCESS_TOKEN_TTL: "120",
+        AUTHENTICATOR: 'user-pass-pid',
+        ACCESS_TOKEN_TTL: '120',
       };
 
       vi.resetModules();
-      const { createApp: createTtlApp } = await import("../../src/app");
+      const { createApp: createTtlApp } = await import('../../src/app');
       const { app: ttlApp } = createTtlApp();
       const agent = request.agent(ttlApp);
 
@@ -167,41 +165,40 @@ describe("app integration", () => {
     });
   });
 
-  describe("parallel issuance grants", () => {
+  describe('parallel issuance grants', () => {
     const originalEnv = process.env;
 
     afterAll(() => {
       process.env = originalEnv;
     });
 
-    it("keeps POR refresh token valid when PID issuance starts before POR access token expires", async () => {
-      const trustedIssuer = "http://localhost:8003/openid";
+    it('keeps POR refresh token valid when PID issuance starts before POR access token expires', async () => {
+      const trustedIssuer = 'http://localhost:8003/openid';
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
-        USER_PASS_PID_DEMO_USERNAME: "test",
-        USER_PASS_PID_DEMO_PASSWORD: "test",
-        ACCESS_TOKEN_TTL: "10",
-        REFRESH_TOKEN_TTL: "2592000",
-        SCOPES: "openid,por:sd_jwt_vc,pid:sd_jwt_dc",
+        AUTHENTICATOR: 'user-pass-pid',
+        USER_PASS_PID_DEMO_USERNAME: 'test',
+        USER_PASS_PID_DEMO_PASSWORD: 'test',
+        ACCESS_TOKEN_TTL: '10',
+        REFRESH_TOKEN_TTL: '2592000',
+        SCOPES: 'openid,por:sd_jwt_vc,pid:sd_jwt_dc',
         TRUSTED_ISSUERS: trustedIssuer,
       };
 
       vi.resetModules();
-      const { createApp: createParallelIssuanceApp } = await import("../../src/app");
-      const { app: parallelIssuanceApp, provider } =
-        createParallelIssuanceApp();
+      const { createApp: createParallelIssuanceApp } = await import('../../src/app');
+      const { app: parallelIssuanceApp, provider } = createParallelIssuanceApp();
       const agent = request.agent(parallelIssuanceApp);
 
       const porTokenResponse = await issueAccessToken(agent, {
-        scope: "openid por:sd_jwt_vc",
+        scope: 'openid por:sd_jwt_vc',
         resource: trustedIssuer,
-        issuer_state: "issuer-state-por",
+        issuer_state: 'issuer-state-por',
       });
       const pidTokenResponse = await issueAccessToken(agent, {
-        scope: "openid pid:sd_jwt_dc",
+        scope: 'openid pid:sd_jwt_dc',
         resource: trustedIssuer,
-        issuer_state: "issuer-state-pid",
+        issuer_state: 'issuer-state-pid',
       });
 
       const porToken = await provider.AccessToken.find(porTokenResponse.accessToken);
@@ -215,73 +212,71 @@ describe("app integration", () => {
 
       expect((pidToken as any).clientId).toBe((porToken as any).clientId);
       expect((pidToken as any).sessionUid).toBe((porToken as any).sessionUid);
-      expect(typeof porGrantId).toBe("string");
+      expect(typeof porGrantId).toBe('string');
       expect(porGrantId.length).toBeGreaterThan(0);
-      expect(typeof pidGrantId).toBe("string");
+      expect(typeof pidGrantId).toBe('string');
       expect(pidGrantId.length).toBeGreaterThan(0);
       expect(pidGrantId).toBe(porGrantId);
 
       const refreshedPorTokenResponse = await refreshAccessToken(agent, {
         refreshToken: porTokenResponse.refreshToken,
-        scope: "por:sd_jwt_vc",
+        scope: 'por:sd_jwt_vc',
       });
       const refreshedPorToken = await provider.AccessToken.find(
-        refreshedPorTokenResponse.accessToken
+        refreshedPorTokenResponse.accessToken,
       );
 
       expect(refreshedPorToken).toBeTruthy();
       expect((refreshedPorToken as any).grantId).toBe(porGrantId);
     });
 
-    it("keeps POR refresh token valid when PID issuance starts after POR access token expires", async () => {
-      const trustedIssuer = "http://localhost:8003/openid";
+    it('keeps POR refresh token valid when PID issuance starts after POR access token expires', async () => {
+      const trustedIssuer = 'http://localhost:8003/openid';
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
-        USER_PASS_PID_DEMO_USERNAME: "test",
-        USER_PASS_PID_DEMO_PASSWORD: "test",
-        ACCESS_TOKEN_TTL: "1",
-        REFRESH_TOKEN_TTL: "2592000",
-        SCOPES: "openid,por:sd_jwt_vc,pid:sd_jwt_dc",
+        AUTHENTICATOR: 'user-pass-pid',
+        USER_PASS_PID_DEMO_USERNAME: 'test',
+        USER_PASS_PID_DEMO_PASSWORD: 'test',
+        ACCESS_TOKEN_TTL: '1',
+        REFRESH_TOKEN_TTL: '2592000',
+        SCOPES: 'openid,por:sd_jwt_vc,pid:sd_jwt_dc',
         TRUSTED_ISSUERS: trustedIssuer,
       };
 
       vi.resetModules();
-      const { createApp: createParallelIssuanceApp } = await import("../../src/app");
-      const { app: parallelIssuanceApp, provider } =
-        createParallelIssuanceApp();
+      const { createApp: createParallelIssuanceApp } = await import('../../src/app');
+      const { app: parallelIssuanceApp, provider } = createParallelIssuanceApp();
       const agent = request.agent(parallelIssuanceApp);
 
       const porTokenResponse = await issueAccessToken(agent, {
-        scope: "openid por:sd_jwt_vc",
+        scope: 'openid por:sd_jwt_vc',
         resource: trustedIssuer,
-        issuer_state: "issuer-state-por",
+        issuer_state: 'issuer-state-por',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 1100));
 
       const savedPorRefreshTokenBeforePid = await provider.RefreshToken.find(
         porTokenResponse.refreshToken,
-        { ignoreExpiration: true }
+        { ignoreExpiration: true },
       );
       expect(savedPorRefreshTokenBeforePid).toBeTruthy();
 
       const pidTokenResponse = await issueAccessToken(agent, {
-        scope: "openid pid:sd_jwt_dc",
+        scope: 'openid pid:sd_jwt_dc',
         resource: trustedIssuer,
-        issuer_state: "issuer-state-pid",
+        issuer_state: 'issuer-state-pid',
       });
 
       const savedPorRefreshTokenAfterPid = await provider.RefreshToken.find(
         porTokenResponse.refreshToken,
-        { ignoreExpiration: true }
+        { ignoreExpiration: true },
       );
       expect(savedPorRefreshTokenAfterPid).toBeTruthy();
 
-      const porToken = await provider.AccessToken.find(
-        porTokenResponse.accessToken,
-        { ignoreExpiration: true }
-      );
+      const porToken = await provider.AccessToken.find(porTokenResponse.accessToken, {
+        ignoreExpiration: true,
+      });
       const pidToken = await provider.AccessToken.find(pidTokenResponse.accessToken);
 
       expect(porToken).toBeUndefined();
@@ -290,19 +285,19 @@ describe("app integration", () => {
       const porGrantId = (savedPorRefreshTokenAfterPid as any).grantId;
       const pidGrantId = (pidToken as any).grantId;
 
-      expect(typeof porGrantId).toBe("string");
+      expect(typeof porGrantId).toBe('string');
       expect(porGrantId.length).toBeGreaterThan(0);
-      expect(typeof pidGrantId).toBe("string");
+      expect(typeof pidGrantId).toBe('string');
       expect(pidGrantId.length).toBeGreaterThan(0);
       expect(pidGrantId).toBe(porGrantId);
       expect((savedPorRefreshTokenAfterPid as any).grantId).toBe(porGrantId);
 
       const refreshedPorTokenResponse = await refreshAccessToken(agent, {
         refreshToken: porTokenResponse.refreshToken,
-        scope: "por:sd_jwt_vc",
+        scope: 'por:sd_jwt_vc',
       });
       const refreshedPorToken = await provider.AccessToken.find(
-        refreshedPorTokenResponse.accessToken
+        refreshedPorTokenResponse.accessToken,
       );
 
       expect(refreshedPorToken).toBeTruthy();
@@ -310,49 +305,46 @@ describe("app integration", () => {
     });
   });
 
-  describe("issuer_state token scoping", () => {
+  describe('issuer_state token scoping', () => {
     const originalEnv = process.env;
 
     afterAll(() => {
       process.env = originalEnv;
     });
 
-    it("does not inherit issuer_state from a reused grant", async () => {
-      const trustedIssuer = "http://localhost:8003/openid";
-      const issuerState = "issuer-state-diploma";
+    it('does not inherit issuer_state from a reused grant', async () => {
+      const trustedIssuer = 'http://localhost:8003/openid';
+      const issuerState = 'issuer-state-diploma';
 
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
-        USER_PASS_PID_DEMO_USERNAME: "test",
-        USER_PASS_PID_DEMO_PASSWORD: "test",
-        SCOPES: "openid,diploma",
+        AUTHENTICATOR: 'user-pass-pid',
+        USER_PASS_PID_DEMO_USERNAME: 'test',
+        USER_PASS_PID_DEMO_PASSWORD: 'test',
+        SCOPES: 'openid,diploma',
         TRUSTED_ISSUERS: trustedIssuer,
       };
 
       vi.resetModules();
-      const { createApp: createIssuerStateReuseApp } = await import("../../src/app");
+      const { createApp: createIssuerStateReuseApp } = await import('../../src/app');
       const { app: issuerStateReuseApp } = createIssuerStateReuseApp();
       const agent = request.agent(issuerStateReuseApp);
 
       const credentialOfferTokenResponse = await issueAccessToken(agent, {
-        scope: "openid diploma",
+        scope: 'openid diploma',
         resource: trustedIssuer,
         issuer_state: issuerState,
       });
       const sameSessionTokenResponse = await issueAccessToken(agent, {
-        scope: "openid diploma",
+        scope: 'openid diploma',
         resource: trustedIssuer,
       });
 
       const credentialOfferIntrospection = await introspectAccessToken(
         agent,
-        credentialOfferTokenResponse
+        credentialOfferTokenResponse,
       );
-      const sameSessionIntrospection = await introspectAccessToken(
-        agent,
-        sameSessionTokenResponse
-      );
+      const sameSessionIntrospection = await introspectAccessToken(agent, sameSessionTokenResponse);
 
       expect(credentialOfferIntrospection.active).toBe(true);
       expect(credentialOfferIntrospection.issuer_state).toBe(issuerState);
@@ -361,37 +353,37 @@ describe("app integration", () => {
     });
   });
 
-  describe("pre-authorized issuer login", () => {
+  describe('pre-authorized issuer login', () => {
     const originalEnv = process.env;
 
     afterAll(() => {
       process.env = originalEnv;
     });
 
-    it("auto-approves consent when the authorization request is marked pre-authorized", async () => {
+    it('auto-approves consent when the authorization request is marked pre-authorized', async () => {
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
-        USER_PASS_PID_DEMO_USERNAME: "test",
-        USER_PASS_PID_DEMO_PASSWORD: "test",
-        SCOPES: "openid,diploma",
-        PRE_AUTHORIZED_CONSENT_CLIENT_IDS: "test",
+        AUTHENTICATOR: 'user-pass-pid',
+        USER_PASS_PID_DEMO_USERNAME: 'test',
+        USER_PASS_PID_DEMO_PASSWORD: 'test',
+        SCOPES: 'openid,diploma',
+        PRE_AUTHORIZED_CONSENT_CLIENT_IDS: 'test',
       };
 
       vi.resetModules();
-      const { createApp: createPreAuthorizedApp } = await import("../../src/app");
+      const { createApp: createPreAuthorizedApp } = await import('../../src/app');
       const { app: preAuthorizedApp } = createPreAuthorizedApp();
       const agent = request.agent(preAuthorizedApp);
 
       const tokenResponse = await issueAccessToken(
         agent,
         {
-          scope: "openid diploma",
+          scope: 'openid diploma',
           state: JSON.stringify({
-            credential_configuration_id: "diploma"
+            credential_configuration_id: 'diploma',
           }),
         },
-        { confirmConsent: false }
+        { confirmConsent: false },
       );
 
       expect(tokenResponse.accessToken).toBeTruthy();
@@ -399,17 +391,17 @@ describe("app integration", () => {
     });
   });
 
-  describe("application restart", () => {
+  describe('application restart', () => {
     const originalEnv = process.env;
 
     afterAll(() => {
       process.env = originalEnv;
     });
 
-    it("can introspect tokens issued before the application restarted", async () => {
+    it('can introspect tokens issued before the application restarted', async () => {
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
+        AUTHENTICATOR: 'user-pass-pid',
       };
 
       //
@@ -417,7 +409,7 @@ describe("app integration", () => {
       //
       vi.resetModules();
 
-      const { createApp: createFirstApp } = await import("../../src/app");
+      const { createApp: createFirstApp } = await import('../../src/app');
 
       const { app: firstApp } = createFirstApp();
 
@@ -430,7 +422,7 @@ describe("app integration", () => {
       //
       vi.resetModules();
 
-      const { createApp: createSecondApp } = await import("../../src/app");
+      const { createApp: createSecondApp } = await import('../../src/app');
 
       const { app: secondApp } = createSecondApp();
 
@@ -442,8 +434,8 @@ describe("app integration", () => {
       //
       const introspection = await secondAgent
         .post(token.introspectionPath)
-        .auth("test", "test")
-        .type("form")
+        .auth('test', 'test')
+        .type('form')
         .send({
           token: token.accessToken,
         })
@@ -452,35 +444,33 @@ describe("app integration", () => {
       expect(introspection.body.active).toBe(true);
     });
 
-    it("preserves the login session across an application restart", async () => {
+    it('preserves the login session across an application restart', async () => {
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
+        AUTHENTICATOR: 'user-pass-pid',
       };
 
       vi.resetModules();
 
-      const { createApp: createFirstApp } = await import("../../src/app");
+      const { createApp: createFirstApp } = await import('../../src/app');
 
       const { app: firstApp, provider: firstProvider } = createFirstApp();
       const firstAgent = request.agent(firstApp);
 
       const token = await issueAccessToken(firstAgent);
-      const accessToken = await firstProvider.AccessToken.find(
-        token.accessToken
-      );
+      const accessToken = await firstProvider.AccessToken.find(token.accessToken);
 
       expect(accessToken).toBeTruthy();
 
       const sessionUid = (accessToken as any).sessionUid;
-      expect(typeof sessionUid).toBe("string");
+      expect(typeof sessionUid).toBe('string');
 
       const firstSession = await firstProvider.Session.findByUid(sessionUid);
       expect(firstSession).toBeTruthy();
 
       vi.resetModules();
 
-      const { createApp: createSecondApp } = await import("../../src/app");
+      const { createApp: createSecondApp } = await import('../../src/app');
 
       const { app: secondApp, provider: secondProvider } = createSecondApp();
 
@@ -489,16 +479,16 @@ describe("app integration", () => {
       expect((secondSession as any).accountId).toBe((firstSession as any).accountId);
     });
 
-    it("keeps a pending deferred issuance refresh token usable after an application restart", async () => {
-      const trustedIssuer = "http://localhost:8003/openid";
+    it('keeps a pending deferred issuance refresh token usable after an application restart', async () => {
+      const trustedIssuer = 'http://localhost:8003/openid';
       process.env = {
         ...originalEnv,
-        AUTHENTICATOR: "user-pass-pid",
-        USER_PASS_PID_DEMO_USERNAME: "test",
-        USER_PASS_PID_DEMO_PASSWORD: "test",
-        ACCESS_TOKEN_TTL: "1",
-        REFRESH_TOKEN_TTL: "2592000",
-        SCOPES: "openid,por:sd_jwt_vc",
+        AUTHENTICATOR: 'user-pass-pid',
+        USER_PASS_PID_DEMO_USERNAME: 'test',
+        USER_PASS_PID_DEMO_PASSWORD: 'test',
+        ACCESS_TOKEN_TTL: '1',
+        REFRESH_TOKEN_TTL: '2592000',
+        SCOPES: 'openid,por:sd_jwt_vc',
         TRUSTED_ISSUERS: trustedIssuer,
       };
 
@@ -508,27 +498,27 @@ describe("app integration", () => {
       //
       vi.resetModules();
 
-      const { createApp: createFirstApp } = await import("../../src/app");
+      const { createApp: createFirstApp } = await import('../../src/app');
 
       const { app: firstApp, provider: firstProvider } = createFirstApp();
 
       const firstAgent = request.agent(firstApp);
 
       const initialTokenResponse = await issueAccessToken(firstAgent, {
-        scope: "openid por:sd_jwt_vc",
+        scope: 'openid por:sd_jwt_vc',
         resource: trustedIssuer,
-        issuer_state: "pending-deferred-issuance-request",
+        issuer_state: 'pending-deferred-issuance-request',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 1100));
 
       const expiredAccessToken = await firstProvider.AccessToken.find(
         initialTokenResponse.accessToken,
-        { ignoreExpiration: true }
+        { ignoreExpiration: true },
       );
       const initialRefreshToken = await firstProvider.RefreshToken.find(
         initialTokenResponse.refreshToken,
-        { ignoreExpiration: true }
+        { ignoreExpiration: true },
       );
 
       expect(expiredAccessToken).toBeUndefined();
@@ -536,39 +526,37 @@ describe("app integration", () => {
 
       const refreshedBeforeRestart = await refreshAccessToken(firstAgent, {
         refreshToken: initialTokenResponse.refreshToken,
-        scope: "por:sd_jwt_vc",
+        scope: 'por:sd_jwt_vc',
       });
       const refreshTokenInUse =
         refreshedBeforeRestart.refreshToken ?? initialTokenResponse.refreshToken;
 
-      const refreshTokenBeforeRestart = await firstProvider.RefreshToken.find(
-        refreshTokenInUse,
-        { ignoreExpiration: true }
-      );
+      const refreshTokenBeforeRestart = await firstProvider.RefreshToken.find(refreshTokenInUse, {
+        ignoreExpiration: true,
+      });
       expect(refreshTokenBeforeRestart).toBeTruthy();
 
       vi.resetModules();
 
-      const { createApp: createSecondApp } = await import("../../src/app");
+      const { createApp: createSecondApp } = await import('../../src/app');
 
       const { app: secondApp, provider: secondProvider } = createSecondApp();
 
       const secondAgent = request.agent(secondApp);
 
-      const refreshTokenAfterRestart = await secondProvider.RefreshToken.find(
-        refreshTokenInUse,
-        { ignoreExpiration: true }
-      );
+      const refreshTokenAfterRestart = await secondProvider.RefreshToken.find(refreshTokenInUse, {
+        ignoreExpiration: true,
+      });
       expect(refreshTokenAfterRestart).toBeTruthy();
 
       const refreshAfterRestart = await secondAgent
-        .post("/token")
-        .auth("test", "test")
-        .type("form")
+        .post('/token')
+        .auth('test', 'test')
+        .type('form')
         .send({
-          grant_type: "refresh_token",
+          grant_type: 'refresh_token',
           refresh_token: refreshTokenInUse,
-          scope: "por:sd_jwt_vc",
+          scope: 'por:sd_jwt_vc',
         })
         .expect(200);
 
@@ -586,18 +574,14 @@ function extractInteractionUid(location: string) {
 }
 
 function normalizeLocation(location: string) {
-  if (!location.startsWith("http://") && !location.startsWith("https://")) {
-    return location.startsWith("/") ? location : `/${location}`;
+  if (!location.startsWith('http://') && !location.startsWith('https://')) {
+    return location.startsWith('/') ? location : `/${location}`;
   }
   const url = new URL(location);
   return `${url.pathname}${url.search}`;
 }
 
-async function followRedirectsToOk(
-  agent: request.SuperAgentTest,
-  location: string,
-  maxHops = 5
-) {
+async function followRedirectsToOk(agent: request.SuperAgentTest, location: string, maxHops = 5) {
   let nextLocation = normalizeLocation(location);
   for (let hop = 0; hop < maxHops; hop += 1) {
     const res = await agent.get(nextLocation);
@@ -616,7 +600,7 @@ async function followRedirectsToAuthCode(
   agent: request.SuperAgentTest,
   location: string,
   redirectUri: string,
-  maxHops = 5
+  maxHops = 5,
 ) {
   let nextLocation = location;
   for (let hop = 0; hop < maxHops; hop += 1) {
@@ -637,11 +621,11 @@ async function followRedirectsToAuthCode(
 
 function tryExtractAuthCode(location: string, redirectUri: string) {
   try {
-    const url = new URL(location, "http://localhost");
+    const url = new URL(location, 'http://localhost');
     if (!url.href.startsWith(redirectUri)) {
       return null;
     }
-    return url.searchParams.get("code");
+    return url.searchParams.get('code');
   } catch {
     return null;
   }
@@ -650,16 +634,16 @@ function tryExtractAuthCode(location: string, redirectUri: string) {
 async function issueAccessToken(
   agent: request.SuperAgentTest,
   authQuery: Record<string, string> = {},
-  options: { confirmConsent?: boolean } = {}
+  options: { confirmConsent?: boolean } = {},
 ) {
   const authRes = await agent
-    .get("/auth")
+    .get('/auth')
     .query({
-      client_id: "test",
-      redirect_uri: "http://localhost:9876/callback",
-      response_type: "code",
-      scope: "openid",
-      state: "state-123",
+      client_id: 'test',
+      redirect_uri: 'http://localhost:9876/callback',
+      response_type: 'code',
+      scope: 'openid',
+      state: 'state-123',
       ...authQuery,
     })
     .expect(303);
@@ -674,8 +658,8 @@ async function issueAccessToken(
   if (interactionPage.response.text.includes('name="login"')) {
     const loginRes = await agent
       .post(`/interaction/${consentUid}/login`)
-      .type("form")
-      .send({ login: "test", password: "test" })
+      .type('form')
+      .send({ login: 'test', password: 'test' })
       .expect(303);
 
     const consentLocation = loginRes.headers.location;
@@ -683,10 +667,7 @@ async function issueAccessToken(
     if (options.confirmConsent === false) {
       redirectLocation = consentLocation as string;
     } else {
-      interactionPage = await followRedirectsToOk(
-        agent,
-        consentLocation as string
-      );
+      interactionPage = await followRedirectsToOk(agent, consentLocation as string);
       consentUid = extractInteractionUid(interactionPage.location);
     }
   }
@@ -694,7 +675,7 @@ async function issueAccessToken(
   if (options.confirmConsent !== false) {
     const consentRes = await agent
       .post(`/interaction/${consentUid}/confirm`)
-      .type("form")
+      .type('form')
       .send({})
       .expect((res) => {
         if (res.status !== 302 && res.status !== 303) {
@@ -710,17 +691,17 @@ async function issueAccessToken(
   const code = await followRedirectsToAuthCode(
     agent,
     redirectLocation as string,
-    "http://localhost:9876/callback"
+    'http://localhost:9876/callback',
   );
 
   const tokenRes = await agent
-    .post("/token")
-    .auth("test", "test")
-    .type("form")
+    .post('/token')
+    .auth('test', 'test')
+    .type('form')
     .send({
-      grant_type: "authorization_code",
+      grant_type: 'authorization_code',
       code,
-      redirect_uri: "http://localhost:9876/callback",
+      redirect_uri: 'http://localhost:9876/callback',
     })
     .expect(200);
 
@@ -730,25 +711,21 @@ async function issueAccessToken(
   expect(refreshToken).toBeTruthy();
   const expiresIn = tokenRes.body.expires_in as number;
 
-  const discoveryRes = await agent
-    .get("/.well-known/openid-configuration")
-    .expect(200);
+  const discoveryRes = await agent.get('/.well-known/openid-configuration').expect(200);
 
-  const introspectionPath = new URL(
-    discoveryRes.body.introspection_endpoint as string
-  ).pathname;
+  const introspectionPath = new URL(discoveryRes.body.introspection_endpoint as string).pathname;
 
   return { accessToken, refreshToken, introspectionPath, expiresIn };
 }
 
 async function introspectAccessToken(
   agent: request.SuperAgentTest,
-  tokenResponse: Awaited<ReturnType<typeof issueAccessToken>>
+  tokenResponse: Awaited<ReturnType<typeof issueAccessToken>>,
 ) {
   const introspectionRes = await agent
     .post(tokenResponse.introspectionPath)
-    .auth("test", "test")
-    .type("form")
+    .auth('test', 'test')
+    .type('form')
     .send({ token: tokenResponse.accessToken })
     .expect(200);
 
@@ -760,14 +737,14 @@ async function refreshAccessToken(
   options: {
     refreshToken: string;
     scope?: string;
-  }
+  },
 ) {
   const tokenRes = await agent
-    .post("/token")
-    .auth("test", "test")
-    .type("form")
+    .post('/token')
+    .auth('test', 'test')
+    .type('form')
     .send({
-      grant_type: "refresh_token",
+      grant_type: 'refresh_token',
       refresh_token: options.refreshToken,
       ...(options.scope ? { scope: options.scope } : {}),
     })

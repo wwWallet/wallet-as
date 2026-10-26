@@ -1,20 +1,25 @@
-import { Request, Response } from "express";
-import { OpenID4VPClientErrors, OpenID4VPClientAPI, OpenID4VPResponseMode, RPState } from "wallet-common";
-import { defaultHttpClient } from "wallet-common";
-import { webcrypto } from "node:crypto";
-import { pemToBase64 } from "../util/pemToBase64";
-import { decodeBase64Url } from "../util/decodeBase64Url";
-import config from "../config";
+import { Request, Response } from 'express';
+import {
+  OpenID4VPClientErrors,
+  OpenID4VPClientAPI,
+  OpenID4VPResponseMode,
+  RPState,
+} from 'wallet-common';
+import { defaultHttpClient } from 'wallet-common';
+import { webcrypto } from 'node:crypto';
+import { pemToBase64 } from '../util/pemToBase64';
+import { decodeBase64Url } from '../util/decodeBase64Url';
+import config from '../config';
 import fs from 'fs';
-import path from "path";
-import { DataStore } from "../stores/DataStore";
-import { dataStoreClient } from "../stores/dataStoreClient";
+import path from 'path';
+import { DataStore } from '../stores/DataStore';
+import { dataStoreClient } from '../stores/dataStoreClient';
 
-const privateKeyPem = fs.readFileSync(path.join(__dirname, "../../keys/pem.key"), 'utf-8').toString();
-const leafCert = fs.readFileSync(path.join(__dirname, "../../keys/pem.crt"), 'utf-8').toString();
-const x5c = [
-  pemToBase64(leafCert),
-];
+const privateKeyPem = fs
+  .readFileSync(path.join(__dirname, '../../keys/pem.key'), 'utf-8')
+  .toString();
+const leafCert = fs.readFileSync(path.join(__dirname, '../../keys/pem.crt'), 'utf-8').toString();
+const x5c = [pemToBase64(leafCert)];
 
 export type OpenidForPresentationsConfiguration = {
   baseUrl: string;
@@ -22,8 +27,7 @@ export type OpenidForPresentationsConfiguration = {
 };
 
 export class OpenID4VPService {
-  private static rpStateKV =
-    new DataStore<RPState | string>(dataStoreClient, "rpStateKV");
+  private static rpStateKV = new DataStore<RPState | string>(dataStoreClient, 'rpStateKV');
   public openid4vpClient: OpenID4VPClientAPI;
 
   private privateKeyPem: string = privateKeyPem;
@@ -37,7 +41,7 @@ export class OpenID4VPService {
       responseMode?: OpenID4VPResponseMode;
       trustedCertificates?: string[];
       trustedCredentialIssuerIdentifiers?: string[];
-    }
+    },
   ) {
     this.privateKeyPem = opts?.privateKeyPem ?? privateKeyPem;
     this.x5c = opts?.x5c ?? x5c;
@@ -50,21 +54,23 @@ export class OpenID4VPService {
           // @ts-ignore
           clockTolerance: 60,
           subtle: webcrypto.subtle as SubtleCrypto,
-          lang: "en-US",
+          lang: 'en-US',
           trustedCertificates: [...config.trustedRootCertificates] as string[],
           trustedCredentialIssuerIdentifiers: config.trustedIssuers as string[] | undefined,
         },
       },
-      defaultHttpClient
+      defaultHttpClient,
     );
   }
 
   public async getSignedRequestObject(ctx: { req: Request; res: Response }): Promise<any> {
-    if (!ctx.req.query["id"] || typeof ctx.req.query["id"] !== "string") {
-      return ctx.res.status(500).send({ error: "id does not exist on query params" });
+    if (!ctx.req.query['id'] || typeof ctx.req.query['id'] !== 'string') {
+      return ctx.res.status(500).send({ error: 'id does not exist on query params' });
     }
 
-    const signedRequestResult = await this.openid4vpClient.getSignedRequestObject(ctx.req.query["id"]);
+    const signedRequestResult = await this.openid4vpClient.getSignedRequestObject(
+      ctx.req.query['id'],
+    );
     if (!signedRequestResult.ok) {
       const { error, error_description } = signedRequestResult;
       if (error === OpenID4VPClientErrors.MissingRPState) {
@@ -73,7 +79,7 @@ export class OpenID4VPService {
       if (error === OpenID4VPClientErrors.SignedRequestObjectInvalidated) {
         return ctx.res.status(500).send({ error, error_description });
       }
-      return ctx.res.status(500).send({ error: "unknown error" });
+      return ctx.res.status(500).send({ error: 'unknown error' });
     }
     const signedRequest = signedRequestResult.value;
     return ctx.res.send(signedRequest.toString());
@@ -82,7 +88,7 @@ export class OpenID4VPService {
   public async generateAuthorizationRequestURL(
     presentationRequest: any,
     sessionId: string,
-    callbackEndpoint?: string
+    callbackEndpoint?: string,
   ): Promise<{ url: URL; stateId: string }> {
     const generated = await this.openid4vpClient.generateAuthorizationRequestURL(
       presentationRequest,
@@ -92,7 +98,7 @@ export class OpenID4VPService {
       this.privateKeyPem,
       this.x5c,
       this.responseMode,
-      callbackEndpoint
+      callbackEndpoint,
     );
     return { url: generated.url, stateId: generated.stateId };
   }
@@ -105,14 +111,17 @@ export class OpenID4VPService {
       : null;
 
     if (ctx.req.body.response) {
-      const { kid } = JSON.parse(decodeBase64Url(ctx.req.body.response.split(".")[0])) as {
+      const { kid } = JSON.parse(decodeBase64Url(ctx.req.body.response.split('.')[0])) as {
         kid: string | undefined;
       };
       if (!kid) {
-        throw new Error("Could not extract kid");
+        throw new Error('Could not extract kid');
       }
 
-      const rpStateResult = await this.openid4vpClient.handleEncryptedAuthorizationResponse(ctx.req.body.response, kid);
+      const rpStateResult = await this.openid4vpClient.handleEncryptedAuthorizationResponse(
+        ctx.req.body.response,
+        kid,
+      );
       if (!rpStateResult.ok) {
         const { error, error_description } = rpStateResult;
         if (error === OpenID4VPClientErrors.JWEDecryptionFailure) {
@@ -122,24 +131,26 @@ export class OpenID4VPService {
         throw new Error(error_description ?? error);
       }
       const rpState = rpStateResult.value;
-      ctx.res.send({ redirect_uri: rpState.callback_endpoint + "#response_code=" + rpState.response_code });
+      ctx.res.send({
+        redirect_uri: rpState.callback_endpoint + '#response_code=' + rpState.response_code,
+      });
       return;
     }
 
     if (!state) {
-      ctx.res.status(401).send({ error: "Missing state param" });
+      ctx.res.status(401).send({ error: 'Missing state param' });
       return;
     }
 
     if (!vp_token) {
-      ctx.res.status(401).send({ error: "Missing vp_token" });
+      ctx.res.status(401).send({ error: 'Missing vp_token' });
       return;
     }
 
     const rpStateResult = await this.openid4vpClient.handleResponseDirectPost(
       state,
       vp_token,
-      presentation_submission
+      presentation_submission,
     );
 
     if (!rpStateResult.ok) {
@@ -148,6 +159,8 @@ export class OpenID4VPService {
     }
 
     const rpState = rpStateResult.value;
-    ctx.res.send({ redirect_uri: rpState.callback_endpoint + "#response_code=" + rpState.response_code });
+    ctx.res.send({
+      redirect_uri: rpState.callback_endpoint + '#response_code=' + rpState.response_code,
+    });
   }
 }
