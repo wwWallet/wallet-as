@@ -20,15 +20,15 @@ describe('oidc valkey adapter integration', () => {
     const grantId = `grant-${suffix}`;
     const accessTokenId = `access-token-${suffix}`;
 
-    const sessionAdapter = createOidcValkeyAdapter(client as any)('Session');
-    const accessTokenAdapter = createOidcValkeyAdapter(client as any)('AccessToken');
+    const sessionAdapter = createOidcValkeyAdapter(client)('Session');
+    const accessTokenAdapter = createOidcValkeyAdapter(client)('AccessToken');
 
     await sessionAdapter.upsert(
       sessionId,
       {
         uid: sessionUid,
         accountId: 'account-1',
-      } as any,
+      },
       60,
     );
 
@@ -38,12 +38,12 @@ describe('oidc valkey adapter integration', () => {
         grantId,
         sessionUid,
         clientId: 'client-1',
-      } as any,
+      },
       120,
     );
 
-    const restartedSessionAdapter = createOidcValkeyAdapter(client as any)('Session');
-    const restartedAccessTokenAdapter = createOidcValkeyAdapter(client as any)('AccessToken');
+    const restartedSessionAdapter = createOidcValkeyAdapter(client)('Session');
+    const restartedAccessTokenAdapter = createOidcValkeyAdapter(client)('AccessToken');
 
     expect(await restartedSessionAdapter.findByUid(sessionUid)).toMatchObject({
       uid: sessionUid,

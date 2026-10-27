@@ -9,10 +9,15 @@ export interface PreAuthorizedCodeStoreItem extends PreAuthorizedCodeGrant {
   scope?: string;
 }
 
+type PreAuthorizedCodeError = {
+  error: string;
+  error_description?: string;
+};
+
 export async function consumePreAuthorizedCode(
   code: string,
   token?: string | number,
-): Promise<PreAuthorizedCodeStoreItem> {
+): Promise<PreAuthorizedCodeStoreItem | PreAuthorizedCodeError> {
   const grantResponse = await fetch(`${config.preAuthorizedCodeApiUrl}/pre-authorized-code`, {
     method: 'POST',
     headers: {
@@ -30,5 +35,5 @@ export async function consumePreAuthorizedCode(
   }
 
   const responseBody = await grantResponse.json();
-  return responseBody;
+  return responseBody as PreAuthorizedCodeStoreItem | PreAuthorizedCodeError;
 }

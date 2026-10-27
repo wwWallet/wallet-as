@@ -62,7 +62,7 @@ export class OpenID4VPService {
     );
   }
 
-  public async getSignedRequestObject(ctx: { req: Request; res: Response }): Promise<any> {
+  public async getSignedRequestObject(ctx: { req: Request; res: Response }): Promise<Response> {
     if (!ctx.req.query['id'] || typeof ctx.req.query['id'] !== 'string') {
       return ctx.res.status(500).send({ error: 'id does not exist on query params' });
     }
@@ -85,7 +85,7 @@ export class OpenID4VPService {
   }
 
   public async generateAuthorizationRequestURL(
-    presentationRequest: any,
+    presentationRequest: unknown,
     sessionId: string,
     callbackEndpoint?: string,
   ): Promise<{ url: URL; stateId: string }> {

@@ -1,13 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { AccessToken, Client, KoaContextWithOIDC } from 'oidc-provider';
+
+const ctx = {} as KoaContextWithOIDC;
+const asClient = (client: { clientAuthMethod: string; clientId: string }) =>
+  client as unknown as Client;
+const asAccessToken = (token: { clientId: string }) => token as unknown as AccessToken;
 
 describe('introspectionAllowedPolicy', () => {
   it('rejects non client_secret_basic auth', async () => {
     vi.resetModules();
     const { introspectionAllowedPolicy } = await import('../../src/util/introspectionHelpers');
 
-    const ctx = {} as any;
-    const client = { clientAuthMethod: 'none', clientId: 'client-a' } as any;
-    const token = { clientId: 'client-a' } as any;
+    const client = asClient({ clientAuthMethod: 'none', clientId: 'client-a' });
+    const token = asAccessToken({ clientId: 'client-a' });
 
     expect(introspectionAllowedPolicy(ctx, client, token)).toBe(false);
   });
@@ -16,12 +21,11 @@ describe('introspectionAllowedPolicy', () => {
     vi.resetModules();
     const { introspectionAllowedPolicy } = await import('../../src/util/introspectionHelpers');
 
-    const ctx = {} as any;
-    const client = {
+    const client = asClient({
       clientAuthMethod: 'client_secret_basic',
       clientId: 'client-a',
-    } as any;
-    const token = { clientId: 'client-a' } as any;
+    });
+    const token = asAccessToken({ clientId: 'client-a' });
 
     expect(introspectionAllowedPolicy(ctx, client, token)).toBe(true);
   });
@@ -37,12 +41,11 @@ describe('introspectionAllowedPolicy', () => {
     vi.resetModules();
     const { introspectionAllowedPolicy } = await import('../../src/util/introspectionHelpers');
 
-    const ctx = {} as any;
-    const client = {
+    const client = asClient({
       clientAuthMethod: 'client_secret_basic',
       clientId: 'introspect-client',
-    } as any;
-    const token = { clientId: 'other-client' } as any;
+    });
+    const token = asAccessToken({ clientId: 'other-client' });
 
     expect(introspectionAllowedPolicy(ctx, client, token)).toBe(true);
 

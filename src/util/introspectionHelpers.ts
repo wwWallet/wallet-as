@@ -1,4 +1,4 @@
-import * as oidc from 'oidc-provider';
+import type * as oidc from 'oidc-provider';
 import config from '../config';
 
 export function introspectionAllowedPolicy(
