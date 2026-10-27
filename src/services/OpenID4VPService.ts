@@ -103,9 +103,9 @@ export class OpenID4VPService {
   }
 
   public async responseHandler(ctx: { req: Request; res: Response }): Promise<void> {
-    let vp_token = ctx.req.body?.vp_token;
-    let state = ctx.req.body?.state;
-    let presentation_submission = ctx.req.body.presentation_submission
+    const vp_token = ctx.req.body?.vp_token;
+    const state = ctx.req.body?.state;
+    const presentation_submission = ctx.req.body.presentation_submission
       ? JSON.parse(decodeURI(ctx.req.body.presentation_submission))
       : null;
 
