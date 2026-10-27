@@ -51,7 +51,6 @@ export class OpenID4VPService {
       {
         redirectUri: this.configuration.redirectUri,
         credentialEngineOptions: {
-          // @ts-ignore
           clockTolerance: 60,
           subtle: webcrypto.subtle as SubtleCrypto,
           lang: 'en-US',
