@@ -220,8 +220,11 @@ describe('app integration', () => {
     const originalEnv = process.env;
     let externalServer: Server;
 
-    afterAll(() => {
+    afterAll(async () => {
       process.env = originalEnv;
+      if (externalServer) {
+        await closeServer(externalServer);
+      }
     });
 
     it('can introspect tokens issued before the application restarted', async () => {

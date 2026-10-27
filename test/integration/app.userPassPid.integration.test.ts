@@ -472,7 +472,7 @@ describe('app integration', () => {
 
       const { createApp: createSecondApp } = await import('../../src/app');
 
-      const { app: secondApp, provider: secondProvider } = createSecondApp();
+      const { provider: secondProvider } = createSecondApp();
 
       const secondSession = await secondProvider.Session.findByUid(sessionUid);
       expect(secondSession).toBeTruthy();

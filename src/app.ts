@@ -59,7 +59,7 @@ export function createApp() {
     scopes: config.scopes,
     interactions: {
       policy: interactionPolicies(),
-      url(ctx, interaction) {
+      url(_ctx, interaction) {
         if (interaction.prompt.name === 'login') {
           const loginUrl = authenticator.getLoginInteractionUrl(interaction);
           if (loginUrl) {
