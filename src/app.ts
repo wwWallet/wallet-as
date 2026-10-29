@@ -54,6 +54,7 @@ export function createApp() {
     jwks: config.oidcJwks,
     enabledJWA: {
       attestSigningAlgValues: ['ES256'],
+      dPoPSigningAlgValues: ['ES256'],
     },
     clientAuthMethods: [
       'client_secret_basic',
@@ -88,11 +89,17 @@ export function createApp() {
       attestClientAuth: {
         enabled: true,
         challengeSecret: config.abcaChallengeSecret,
-        ack: 'draft-10',
+        ack: 'draft-12',
         getAttestationSignaturePublicKey,
         assertAttestationJwtAndPop,
       },
       devInteractions: { enabled: false },
+      dPoP: {
+        enabled: true,
+        nonceSecret: config.dpopNonceSecret,
+        requireNonce: () => false,
+        allowReplay: false,
+      },
       introspection: {
         enabled: true,
         allowedPolicy: introspectionAllowedPolicy,

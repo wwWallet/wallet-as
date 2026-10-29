@@ -4,6 +4,7 @@ describe('introspectionAllowedPolicy', () => {
   beforeEach(() => {
     // Deterministic test fixture only; never use this value in a deployment.
     vi.stubEnv('ABCA_CHALLENGE_SECRET', 'ab'.repeat(32));
+    vi.stubEnv('DPOP_NONCE_SECRET', 'test-dpop-nonce-secret-0123456789ab');
   });
 
   afterEach(() => {

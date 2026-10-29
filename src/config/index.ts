@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type * as oidc from 'oidc-provider';
 import { z } from 'zod';
+import crypto from 'node:crypto';
 dotenv.config();
 
 const serviceUrl = process.env.SERVICE_URL || 'http://localhost:6060';
@@ -41,9 +42,15 @@ const dataStorePassword = process.env.DATA_STORE_PASSWORD || null;
 
 if (process.env.NODE_ENV === 'production' && !dataStorePassword) {
   console.error(`FATAL: Insecure data store found in production.`);
-
   process.exit(1);
 }
+
+const dpopNonceSecret = process.env.DPOP_NONCE_SECRET;
+if (!dpopNonceSecret || dpopNonceSecret.length < 32) {
+  console.error(`FATAL: DPOP_NONCE_SECRET must be configured with at least 32 characters.`);
+  process.exit(1);
+}
+const dpopNonceSecretBytes = crypto.createHash('sha256').update(dpopNonceSecret).digest();
 
 const certsDir = path.resolve(process.cwd(), './certs');
 let trustedRootCertificates: string[] = [];
@@ -99,9 +106,9 @@ function loadOAuth2Clients(): oidc.ClientMetadata[] {
   try {
     parsed = JSON.parse(fs.readFileSync(clientsFile, 'utf-8'));
   } catch (err) {
-    throw new Error(`Failed to parse OAuth2 clients file '${clientsFile}': ${err}`);
+    console.error(`FATAL: Failed to parse OAuth2 clients file '${clientsFile}': ${err}`);
+    process.exit(1);
   }
-
   return clientsSchema.parse(parsed) as oidc.ClientMetadata[];
 }
 
@@ -111,9 +118,10 @@ if (
   abcaChallengeSecretHex.length !== 64 ||
   !/^[0-9a-fA-F]{64}$/.test(abcaChallengeSecretHex)
 ) {
-  throw new Error(
-    'ABCA_CHALLENGE_SECRET must contain exactly 64 hexadecimal characters (32 bytes).',
+  console.error(
+    `FATAL: ABCA_CHALLENGE_SECRET must contain exactly 64 hexadecimal characters (32 bytes).`,
   );
+  process.exit(1);
 }
 const abcaChallengeSecret = Buffer.from(abcaChallengeSecretHex, 'hex');
 const openid4vcProfile = z
@@ -127,9 +135,10 @@ const weBuildAbcaStatusListAllowedOrigins = (
   .map((origin) => origin.trim())
   .filter(Boolean);
 if (openid4vcProfile === 'WEBUILD' && weBuildAbcaStatusListAllowedOrigins.length === 0) {
-  throw new Error(
-    'WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS is required when OPENID4VC_PROFILE=WEBUILD.',
+  console.error(
+    `FATAL: WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS is required when OPENID4VC_PROFILE=WEBUILD.`,
   );
+  process.exit(1);
 }
 
 export default {
@@ -140,6 +149,7 @@ export default {
   dataStoreHost: dataStoreHost,
   dataStorePort: dataStorePort,
   dataStorePassword: dataStorePassword,
+  dpopNonceSecret: dpopNonceSecretBytes,
   oidClients: loadOAuth2Clients(),
   introspectionClient: process.env.INTROSPECTION_CLIENT || null,
   introspectionClientSecret: process.env.INTROSPECTION_CLIENT_SECRET || null,
