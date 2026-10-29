@@ -29,6 +29,6 @@ export async function consumePreAuthorizedCode(
     throw new Error('Requested pre-authorized code is invalid.');
   }
 
-  const responseBody = await grantResponse.json();
+  const responseBody = (await grantResponse.json()) as PreAuthorizedCodeStoreItem;
   return responseBody;
 }
