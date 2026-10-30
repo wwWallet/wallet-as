@@ -52,7 +52,7 @@ export class OpenID4VPService {
         redirectUri: this.configuration.redirectUri,
         credentialEngineOptions: {
           clockTolerance: 60,
-          subtle: webcrypto.subtle as SubtleCrypto,
+          subtle: webcrypto.subtle,
           lang: 'en-US',
           trustedCertificates: [...config.trustedRootCertificates] as string[],
           trustedCredentialIssuerIdentifiers: config.trustedIssuers as string[] | undefined,
