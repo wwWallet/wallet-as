@@ -2,6 +2,7 @@ import {
   createVctDocumentResolutionEngine,
   VctDocumentProvider,
   VctResolutionErrors,
+  TypeMetadata,
   ok,
   err,
 } from 'wallet-common';
@@ -20,7 +21,7 @@ export function createVctProviderFromEnv(): ReturnType<typeof createVctDocumentR
         if (!res.ok) return err(VctResolutionErrors.NotFound);
 
         const json = await res.json();
-        return ok(json as any);
+        return ok(json as TypeMetadata);
       } catch {
         return err(VctResolutionErrors.NotFound);
       }

@@ -1,7 +1,7 @@
 import Valkey, { RedisOptions } from 'iovalkey';
 import config from '../config';
 
-let valkeyConfigOptions: RedisOptions = {
+const valkeyConfigOptions: RedisOptions = {
   host: config.dataStoreHost,
   port: config.dataStorePort,
 };

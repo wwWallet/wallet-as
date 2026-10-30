@@ -1,8 +1,8 @@
-import * as oidc from 'oidc-provider';
+import type * as oidc from 'oidc-provider';
 import config from '../config';
 
 export function introspectionAllowedPolicy(
-  ctx: oidc.KoaContextWithOIDC,
+  _ctx: oidc.KoaContextWithOIDC,
   client: oidc.Client,
   token: oidc.AccessToken | oidc.ClientCredentials | oidc.RefreshToken,
 ) {

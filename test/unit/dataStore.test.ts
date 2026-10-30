@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DataStore } from '../../src/stores/DataStore';
+import type Valkey from 'iovalkey';
 
 const mockClient = {
   get: vi.fn(),
@@ -19,12 +20,12 @@ mockClient.multi.mockReturnValue({
 });
 
 describe('DataStore (unit)', () => {
-  let store: DataStore<any>;
+  let store: DataStore<Record<string, unknown>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    store = new DataStore<any>(mockClient as any, 'test');
+    store = new DataStore<Record<string, unknown>>(mockClient as unknown as Valkey, 'test');
   });
 
   it('builds prefixed keys correctly', async () => {

@@ -1,11 +1,18 @@
-import { calculateJwkThumbprint } from 'jose';
-import { errors } from 'oidc-provider';
+import { calculateJwkThumbprint, type JWK } from 'jose';
+import { errors, type TokenEndpointGrantContext } from 'oidc-provider';
 import {
   consumePreAuthorizedCode,
-  PreAuthorizedCodeStoreItem,
+  type PreAuthorizedCodeStoreItem,
 } from '../services/preAuthorizedCodeService';
 
-export default async function preAuthorizedCodeHandler(ctx: any) {
+type PreAuthorizedCodeGrantParams = {
+  'pre-authorized_code': string;
+  tx_code?: string | number;
+};
+
+export default async function preAuthorizedCodeHandler(
+  ctx: TokenEndpointGrantContext<PreAuthorizedCodeGrantParams>,
+) {
   const { provider, params } = ctx.oidc;
 
   const pre_authorized_code = params['pre-authorized_code'];
@@ -13,24 +20,25 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 
   const grant = await consumePreAuthorizedCode(pre_authorized_code, tx_code);
 
-  if ((grant as any).error) {
-    console.log(`Error consuming pre-authorized code: ${(grant as any).error_description}`);
-    throw new errors.InvalidRequest((grant as any).error);
+  if ('error' in grant && grant.error) {
+    console.log(`Error consuming pre-authorized code: ${grant.error_description}`);
+    throw new errors.InvalidRequest(grant.error);
   }
+  const consumedGrant = grant as PreAuthorizedCodeStoreItem;
 
-  validatePreAuthorizedCodeGrant(grant, tx_code);
+  validatePreAuthorizedCodeGrant(consumedGrant, tx_code);
 
   const client = await provider.Client.find('__pre-authorized_code_client__');
   if (!client) {
     throw new errors.InvalidClient('Could not find pre-authorized_code client');
   }
 
-  const scope = grant.scope;
+  const scope = consumedGrant.scope;
   if (!scope) {
     throw new errors.InvalidGrant('Could not resolve scope from grant.');
   }
 
-  const accountId = grant.account_id;
+  const accountId = consumedGrant.account_id;
   if (!accountId) {
     throw new errors.AccessDenied('invalid account_id');
   }
@@ -40,9 +48,9 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
     client,
     scope,
     gty: 'urn:ietf:params:oauth:grant-type:pre-authorized_code',
-  });
+  } as ConstructorParameters<typeof provider.AccessToken>[0]);
 
-  const { jwk } = decodeHeader(ctx.request.header.dpop);
+  const { jwk } = decodeHeader(ctx.request.header.dpop as string);
   const jkt = await calculateJwkThumbprint(jwk);
   token.setThumbprint('jkt', jkt);
 
@@ -52,7 +60,7 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
     accountId,
     client,
     scope,
-  });
+  } as ConstructorParameters<typeof provider.RefreshToken>[0]);
 
   const refreshToken = await rt.save();
 
@@ -64,14 +72,14 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
   };
 }
 
-function decodeHeader(jwt: string) {
+function decodeHeader(jwt: string): { jwk: JWK } {
   const [header] = jwt.split('.');
-  return JSON.parse(Buffer.from(header, 'base64url').toString('utf8'));
+  return JSON.parse(Buffer.from(header, 'base64url').toString('utf8')) as { jwk: JWK };
 }
 
 async function validatePreAuthorizedCodeGrant(
   grant: PreAuthorizedCodeStoreItem,
-  txCodeReceived: string | number,
+  txCodeReceived?: string | number,
 ) {
   if (!grant) {
     throw new errors.InvalidGrant('unknown pre-authorized code');

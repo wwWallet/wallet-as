@@ -1,8 +1,8 @@
 export default class Account {
   public sub: string;
-  private _claims: any;
+  private _claims: Record<string, unknown>;
 
-  constructor(id: string, claims: object) {
+  constructor(id: string, claims: Record<string, unknown>) {
     this.sub = id;
     this._claims = claims;
   }
