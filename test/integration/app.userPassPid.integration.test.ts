@@ -9,7 +9,13 @@ describe('app integration', () => {
     const res = await request(app).get('/');
 
     expect(res.status).toBe(200);
-    expect(res.text).toContain('Wallet Authorization Server');
+    const displayName = app.locals.displayName
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
+    expect(res.text).toContain(`<title>${displayName}</title>`);
+    expect(res.text).toContain(`<h1 class="home__title">${displayName}</h1>`);
   });
 
   it('serves OIDC discovery metadata', async () => {

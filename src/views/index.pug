@@ -4,14 +4,15 @@ html(lang="en")
     meta(charset="UTF-8")
     base(href=baseUrl + '/')
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    title Wallet AS
+    title #{displayName}
+    link(rel="icon" href="images/favicon.ico")
     link(rel="stylesheet", href="styles/base.css")
     link(rel="stylesheet", href="styles/index.css")
 
   body
     main.home
       header.home__header
-        h1.home__title Wallet Authorization Server
+        h1.home__title= displayName
         p.home__subtitle
           | Secure authentication and authorization services for Wallet clients.
 
@@ -27,4 +28,5 @@ html(lang="en")
 
       footer.home__footer
         p
-          | © #{new Date().getFullYear()} Wallet AS
+          | © #{new Date().getFullYear()} #{displayName}. Powered by&nbsp
+          a(href="https://github.com/wwWallet" target="_blank" rel="noreferrer" aria-label="wwWallet on GitHub") wwWallet
