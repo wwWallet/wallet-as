@@ -105,6 +105,9 @@ function loadOAuth2Clients(): oidc.ClientMetadata[] {
   return clientsSchema.parse(parsed) as oidc.ClientMetadata[];
 }
 
+const pidAuthScopeBlocklist =
+  process.env.PID_AUTH_BLOCKED_SCOPES?.trim() || 'pid:sd_jwt_dc,pid:mso_mdoc';
+
 export default {
   serviceUrl: serviceUrl,
   basePath: basePath,
@@ -142,4 +145,8 @@ export default {
     process.env.PRE_AUTHORIZED_CREDENTIAL_ISSUANCE === 'true' || false,
   preAuthorizedCodeApiUrl: process.env.PRE_AUTHORIZED_CODE_API_URL || '',
   preAuthorizedCodeApiBearerToken: process.env.PRE_AUTHORIZED_CODE_API_BEARER_TOKEN || '',
+  pidAuthBlockedScopes: pidAuthScopeBlocklist
+    .split(',')
+    .map((scope) => scope.trim())
+    .filter(Boolean),
 };

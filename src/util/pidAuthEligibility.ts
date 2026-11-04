@@ -1,4 +1,6 @@
-const PID_AUTH_BLOCKED_SCOPES = new Set(['pid:sd_jwt_dc', 'pid:mso_mdoc']);
+import config from '../config';
+
+const PID_AUTH_BLOCKED_SCOPES = new Set(config.pidAuthBlockedScopes);
 
 export function isPidAuthAllowed(scopeParam: string | undefined | null): boolean {
   if (!scopeParam) {
