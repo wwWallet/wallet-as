@@ -17,10 +17,7 @@
       },
       "sex": 1,
       "birthdate": "1990-10-15",
-      "nationalities": [
-        "US",
-        "GR"
-      ],
+      "nationalities": ["US", "GR"],
       "document_number": "12313213",
       "email": "john@sample.com",
       "phone_number": "+308388338382"
@@ -42,10 +39,7 @@
       },
       "sex": 2,
       "birthdate": "1990-10-15",
-      "nationalities": [
-        "US",
-        "GR"
-      ],
+      "nationalities": ["US", "GR"],
       "document_number": "12313213",
       "email": "emily@sample.com",
       "phone_number": "+308388338381"

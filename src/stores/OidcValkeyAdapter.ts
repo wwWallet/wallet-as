@@ -1,12 +1,12 @@
-import type Valkey from "iovalkey";
-import type * as oidc from "oidc-provider";
+import type Valkey from 'iovalkey';
+import type * as oidc from 'oidc-provider';
 
 const GRANTABLE_MODELS = new Set([
-  "AccessToken",
-  "AuthorizationCode",
-  "RefreshToken",
-  "DeviceCode",
-  "BackchannelAuthenticationRequest",
+  'AccessToken',
+  'AuthorizationCode',
+  'RefreshToken',
+  'DeviceCode',
+  'BackchannelAuthenticationRequest',
 ]);
 
 const epochTime = () => Math.floor(Date.now() / 1000);
@@ -18,35 +18,23 @@ export function createOidcValkeyAdapter(client: Valkey): oidc.AdapterFactory {
 class OidcValkeyAdapter implements oidc.Adapter {
   constructor(
     private readonly client: Valkey,
-    private readonly modelName: string
+    private readonly modelName: string,
   ) {}
 
-  async upsert(
-    id: string,
-    payload: oidc.AdapterPayload,
-    expiresIn: number
-  ): Promise<void> {
+  async upsert(id: string, payload: oidc.AdapterPayload, expiresIn: number): Promise<void> {
     const primaryKey = this.primaryKey(id);
 
-    await this.client.set(primaryKey, JSON.stringify(payload), "EX", expiresIn);
+    await this.client.set(primaryKey, JSON.stringify(payload), 'EX', expiresIn);
 
-    if (this.modelName === "Session" && typeof payload.uid === "string") {
-      await this.client.set(this.sessionUidKey(payload.uid), id, "EX", expiresIn);
+    if (this.modelName === 'Session' && typeof payload.uid === 'string') {
+      await this.client.set(this.sessionUidKey(payload.uid), id, 'EX', expiresIn);
     }
 
-    if (typeof payload.userCode === "string") {
-      await this.client.set(
-        this.userCodeKey(payload.userCode),
-        id,
-        "EX",
-        expiresIn
-      );
+    if (typeof payload.userCode === 'string') {
+      await this.client.set(this.userCodeKey(payload.userCode), id, 'EX', expiresIn);
     }
 
-    if (
-      GRANTABLE_MODELS.has(this.modelName) &&
-      typeof payload.grantId === "string"
-    ) {
+    if (GRANTABLE_MODELS.has(this.modelName) && typeof payload.grantId === 'string') {
       const grantKey = this.grantKey(payload.grantId);
       await this.client.sadd(grantKey, primaryKey);
       await this.extendTtl(grantKey, expiresIn);
@@ -71,9 +59,7 @@ class OidcValkeyAdapter implements oidc.Adapter {
     return id ? this.find(id) : undefined;
   }
 
-  async findByUserCode(
-    userCode: string
-  ): Promise<oidc.AdapterPayload | undefined> {
+  async findByUserCode(userCode: string): Promise<oidc.AdapterPayload | undefined> {
     const id = await this.client.get(this.userCodeKey(userCode));
     return id ? this.find(id) : undefined;
   }
@@ -92,7 +78,7 @@ class OidcValkeyAdapter implements oidc.Adapter {
     };
 
     if (ttlMs > 0) {
-      await this.client.set(key, JSON.stringify(consumed), "PX", ttlMs);
+      await this.client.set(key, JSON.stringify(consumed), 'PX', ttlMs);
       return;
     }
 
@@ -111,18 +97,15 @@ class OidcValkeyAdapter implements oidc.Adapter {
       return;
     }
 
-    if (this.modelName === "Session" && typeof stored.uid === "string") {
+    if (this.modelName === 'Session' && typeof stored.uid === 'string') {
       await this.client.del(this.sessionUidKey(stored.uid));
     }
 
-    if (typeof stored.userCode === "string") {
+    if (typeof stored.userCode === 'string') {
       await this.client.del(this.userCodeKey(stored.userCode));
     }
 
-    if (
-      GRANTABLE_MODELS.has(this.modelName) &&
-      typeof stored.grantId === "string"
-    ) {
+    if (GRANTABLE_MODELS.has(this.modelName) && typeof stored.grantId === 'string') {
       await this.client.srem(this.grantKey(stored.grantId), primaryKey);
     }
   }

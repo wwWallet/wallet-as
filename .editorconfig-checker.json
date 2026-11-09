@@ -1,5 +1,4 @@
 {
-    "Exclude": [
-        "^(node_modules|dist|build)/"
-    ]
+  "SpacesAfterTabs": true,
+  "Exclude": ["^(node_modules|dist|build)/"]
 }

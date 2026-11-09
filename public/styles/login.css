@@ -170,7 +170,7 @@
 
 .login__divider::before,
 .login__divider::after {
-  content: "";
+  content: '';
   flex: 1;
   border-bottom: 1px solid #ddd;
 }
@@ -195,8 +195,8 @@
   width: 18px;
   height: 18px;
   background: currentColor;
-  -webkit-mask: url("/icons/pid-card.svg") no-repeat center / contain;
-  mask: url("/icons/pid-card.svg") no-repeat center / contain;
+  -webkit-mask: url('/icons/pid-card.svg') no-repeat center / contain;
+  mask: url('/icons/pid-card.svg') no-repeat center / contain;
 }
 
 @media (max-width: 520px) {

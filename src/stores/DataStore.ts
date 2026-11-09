@@ -1,5 +1,5 @@
-import Valkey from "iovalkey";
-import { GenericStore } from "wallet-common";
+import Valkey from 'iovalkey';
+import { GenericStore } from 'wallet-common';
 
 export class DataStore<TValue> implements GenericStore<string, TValue> {
   constructor(
@@ -25,18 +25,10 @@ export class DataStore<TValue> implements GenericStore<string, TValue> {
     const builtKey = this.buildKey(key);
     const serializedValue = this.serializeValue(value);
 
-    if(ttlMs !== undefined) {
-      await this.client.set(
-        builtKey,
-        serializedValue,
-        "PX",
-        ttlMs
-      );
+    if (ttlMs !== undefined) {
+      await this.client.set(builtKey, serializedValue, 'PX', ttlMs);
     } else {
-      await this.client.set(
-        builtKey,
-        serializedValue
-      );
+      await this.client.set(builtKey, serializedValue);
     }
   }
 
@@ -45,8 +37,6 @@ export class DataStore<TValue> implements GenericStore<string, TValue> {
   }
 
   async getAll(): Promise<TValue[]> {
-    throw new Error(
-      "getAll() is not supported by DataStore.",
-    );
+    throw new Error('getAll() is not supported by DataStore.');
   }
 }

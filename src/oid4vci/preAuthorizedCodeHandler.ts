@@ -1,23 +1,30 @@
 import crypto from 'node:crypto';
 import { calculateJwkThumbprint, EmbeddedJWK, jwtVerify, type JWK } from 'jose';
-import { errors } from 'oidc-provider';
-import { consumePreAuthorizedCode, PreAuthorizedCodeStoreItem, type ConsumePreAuthorizedCodeResult } from '../services/preAuthorizedCodeService';
+import { errors, type TokenEndpointGrantContext } from 'oidc-provider';
+import {
+  consumePreAuthorizedCode,
+  type PreAuthorizedCodeStoreItem,
+  type ConsumePreAuthorizedCodeResult,
+} from '../services/preAuthorizedCodeService';
 import config from '../config';
 
 const PRE_AUTHORIZED_CODE_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:pre-authorized_code';
 const DPOP_SIGNING_ALG_VALUES = ['ES256'];
 const DPOP_PROOF_MAX_AGE_SECONDS = 300;
 
-export default async function preAuthorizedCodeHandler(ctx: any) {
+type PreAuthorizedCodeGrantParams = {
+  'pre-authorized_code': string;
+  tx_code?: string | number;
+};
 
-  const {
-    provider,
-    params,
-  } = ctx.oidc;
+export default async function preAuthorizedCodeHandler(
+  ctx: TokenEndpointGrantContext<PreAuthorizedCodeGrantParams>,
+) {
+  const { provider, params } = ctx.oidc;
 
   validateTokenRequestParams(params);
 
-  const client = ctx.oidc.client ?? await provider.Client.find('__pre-authorized_code_client__');
+  const client = ctx.oidc.client ?? (await provider.Client.find('__pre-authorized_code_client__'));
   if (!client) {
     throw new errors.InvalidClient('Could not find pre-authorized_code client');
   }
@@ -26,8 +33,8 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
   // leave the pre-authorized code available for the client's retry.
   const dpop = await validateDpopProof(ctx, client.clientId);
 
-  const pre_authorized_code = params["pre-authorized_code"] as string;
-  const tx_code = params["tx_code"] as string | undefined;
+  const pre_authorized_code = params['pre-authorized_code'] as string;
+  const tx_code = params['tx_code'] as string | undefined;
 
   let grant: ConsumePreAuthorizedCodeResult;
   try {
@@ -37,12 +44,12 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
     throw new errors.InvalidGrant('invalid pre-authorized code');
   }
 
-  if ("error" in grant) {
+  if ('error' in grant) {
     console.log(`Error consuming pre-authorized code: ${grant.error_description}`);
     throw new errors.InvalidGrant(grant.error);
   }
 
-  validatePreAuthorizedCodeGrant(grant, tx_code);
+  await validatePreAuthorizedCodeGrant(grant, tx_code);
 
   const scope = grant.scope;
   if (!scope) {
@@ -52,7 +59,7 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
 
   const accountId = grant.account_id;
   if (!accountId) {
-    throw new errors.AccessDenied('invalid account_id')
+    throw new errors.AccessDenied('invalid account_id');
   }
 
   const token = new provider.AccessToken({
@@ -60,7 +67,7 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
     client,
     scope,
     gty: PRE_AUTHORIZED_CODE_GRANT_TYPE,
-  });
+  } as ConstructorParameters<typeof provider.AccessToken>[0]);
 
   token.setThumbprint('jkt', dpop.thumbprint);
 
@@ -72,7 +79,6 @@ export default async function preAuthorizedCodeHandler(ctx: any) {
     expires_in: token.expiration,
     cnf: { jkt: dpop.thumbprint },
   };
-
 }
 
 function validateTokenRequestParams(params: Record<string, unknown>) {
@@ -80,7 +86,10 @@ function validateTokenRequestParams(params: Record<string, unknown>) {
     throw new errors.InvalidGrant('unsupported grant_type');
   }
 
-  if (typeof params["pre-authorized_code"] !== 'string' || params["pre-authorized_code"].trim() === '') {
+  if (
+    typeof params['pre-authorized_code'] !== 'string' ||
+    params['pre-authorized_code'].trim() === ''
+  ) {
     throw new errors.InvalidRequest('pre-authorized_code required');
   }
 
@@ -102,7 +111,10 @@ function validateScope(scope: string) {
   }
 }
 
-async function validateDpopProof(ctx: any, clientId: string): Promise<{ thumbprint: string; jti: string; }> {
+async function validateDpopProof(
+  ctx: TokenEndpointGrantContext<PreAuthorizedCodeGrantParams>,
+  clientId: string,
+): Promise<{ thumbprint: string; jti: string }> {
   const proof = ctx.get('DPoP');
   if (!proof) {
     throw new errors.InvalidGrant('DPoP proof JWT not provided');
@@ -127,9 +139,13 @@ async function validateDpopProof(ctx: any, clientId: string): Promise<{ thumbpri
       throw new errors.InvalidDpopProof('DPoP proof must have a jti string property');
     }
 
-    if (config.dpopNonceRequired && (typeof payload.nonce !== 'string' || !isValidDpopNonce(payload.nonce, config.dpopNonceSecret, nowSeconds))) {
+    if (
+      config.dpopNonceRequired &&
+      (typeof payload.nonce !== 'string' ||
+        !isValidDpopNonce(payload.nonce, config.dpopNonceSecret, nowSeconds))
+    ) {
       ctx.set('DPoP-Nonce', createDpopNonce(config.dpopNonceSecret));
-      throw new (errors as any).UseDpopNonce('DPoP proof nonce is missing or invalid');
+      throw new errors.UseDpopNonce('DPoP proof nonce is missing or invalid');
     }
 
     if (payload.htm !== ctx.method) {
@@ -153,7 +169,9 @@ async function validateDpopProof(ctx: any, clientId: string): Promise<{ thumbpri
     }
 
     if ('d' in jwk || 'k' in jwk) {
-      throw new errors.InvalidDpopProof('DPoP proof jwk must not contain private or symmetric key material');
+      throw new errors.InvalidDpopProof(
+        'DPoP proof jwk must not contain private or symmetric key material',
+      );
     }
 
     const unique = await ctx.oidc.provider.ReplayDetection.unique(
@@ -189,17 +207,25 @@ function createDpopNonce(secret: Buffer, now = Math.floor(Date.now() / 1000)): s
 function isValidDpopNonce(nonce: string, secret: Buffer, now: number): boolean {
   const [timestamp, signature] = nonce.split('.');
   const issuedAt = Number(timestamp);
-  if (!Number.isInteger(issuedAt) || !signature || Math.abs(now - issuedAt) > DPOP_PROOF_MAX_AGE_SECONDS) return false;
+  if (
+    !Number.isInteger(issuedAt) ||
+    !signature ||
+    Math.abs(now - issuedAt) > DPOP_PROOF_MAX_AGE_SECONDS
+  )
+    return false;
   const expected = crypto.createHmac('sha256', secret).update(timestamp).digest('base64url');
-  return signature.length === expected.length && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  return (
+    signature.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
+  );
 }
 
-async function validatePreAuthorizedCodeGrant(grant: PreAuthorizedCodeStoreItem, txCodeReceived?: string | number) {
-
+async function validatePreAuthorizedCodeGrant(
+  grant: PreAuthorizedCodeStoreItem,
+  txCodeReceived?: string | number,
+) {
   if (!grant) {
-    throw new errors.InvalidGrant(
-      'unknown pre-authorized code',
-    );
+    throw new errors.InvalidGrant('unknown pre-authorized code');
   }
 
   const expectedTxCodeStructure = grant?.tx_code;
@@ -207,33 +233,28 @@ async function validatePreAuthorizedCodeGrant(grant: PreAuthorizedCodeStoreItem,
   const expectedExpDateMs = grant?.exp;
 
   if (expectedExpDateMs && expectedExpDateMs < Date.now()) {
-    throw new errors.InvalidGrant(
-      'pre-authorized code has expired',
-    );
+    throw new errors.InvalidGrant('pre-authorized code has expired');
   }
 
   if (expectedTxCodeStructure) {
     if (txCodeReceived === undefined || txCodeReceived === null) {
-      throw new errors.InvalidRequest(
-        'tx_code required',
-      );
+      throw new errors.InvalidRequest('tx_code required');
     }
 
     validateTxCodeShape(expectedTxCodeStructure, txCodeReceived);
 
-    const txCodeValidationResult = constantTimeEqual(String(txCodeReceived), String(expectedTxCodeValue));
+    const txCodeValidationResult = constantTimeEqual(
+      String(txCodeReceived),
+      String(expectedTxCodeValue),
+    );
 
     if (txCodeValidationResult === false) {
-      throw new errors.InvalidGrant(
-        'invalid tx_code',
-      );
+      throw new errors.InvalidGrant('invalid tx_code');
     }
   }
 
   if (!expectedTxCodeStructure && txCodeReceived) {
-    throw new errors.InvalidRequest(
-      'server does not expect tx_code'
-    )
+    throw new errors.InvalidRequest('server does not expect tx_code');
   }
 }
 
@@ -248,7 +269,10 @@ function constantTimeEqual(received: string, expected: string) {
   return crypto.timingSafeEqual(receivedBuffer, expectedBuffer);
 }
 
-function validateTxCodeShape(txCodeStructure: PreAuthorizedCodeStoreItem['tx_code'], txCodeReceived: string | number) {
+function validateTxCodeShape(
+  txCodeStructure: PreAuthorizedCodeStoreItem['tx_code'],
+  txCodeReceived: string | number,
+) {
   if (!txCodeStructure || typeof txCodeStructure !== 'object') {
     return;
   }
