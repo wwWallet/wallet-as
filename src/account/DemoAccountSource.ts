@@ -15,7 +15,7 @@ export class DemoAccountSource implements IAccountSource {
     return Promise.resolve(this.accounts);
   }
 
-  public async authenticate(login: string, password: string) {
+  public async authenticate(login: string, _password: string) {
     return Promise.resolve(this.accounts.find((ac) => ac.sub === login));
   }
 

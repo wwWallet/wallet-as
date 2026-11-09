@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createOidcValkeyAdapter } from '../../src/stores/OidcValkeyAdapter';
+import type Valkey from 'iovalkey';
 
 class FakeValkey {
   private strings = new Map<string, string>();
@@ -99,7 +100,7 @@ class FakeValkey {
 describe('OidcValkeyAdapter', () => {
   it('stores and finds primary payloads with the oidc-provider expiresIn', async () => {
     const client = new FakeValkey();
-    const adapter = createOidcValkeyAdapter(client as any)('AccessToken');
+    const adapter = createOidcValkeyAdapter(client as unknown as Valkey)('AccessToken');
 
     await adapter.upsert('token-1', { clientId: 'client-a' }, 123);
 
@@ -112,8 +113,8 @@ describe('OidcValkeyAdapter', () => {
 
   it('resolves session uid and user code indexes', async () => {
     const client = new FakeValkey();
-    const sessionAdapter = createOidcValkeyAdapter(client as any)('Session');
-    const deviceAdapter = createOidcValkeyAdapter(client as any)('DeviceCode');
+    const sessionAdapter = createOidcValkeyAdapter(client as unknown as Valkey)('Session');
+    const deviceAdapter = createOidcValkeyAdapter(client as unknown as Valkey)('DeviceCode');
 
     await sessionAdapter.upsert('session-1', { uid: 'uid-1' }, 300);
     await deviceAdapter.upsert('device-1', { userCode: 'ABCD' }, 120);
@@ -128,7 +129,7 @@ describe('OidcValkeyAdapter', () => {
 
   it('marks consumed payloads and preserves remaining ttl', async () => {
     const client = new FakeValkey();
-    const adapter = createOidcValkeyAdapter(client as any)('AuthorizationCode');
+    const adapter = createOidcValkeyAdapter(client as unknown as Valkey)('AuthorizationCode');
     vi.setSystemTime(new Date('2026-06-16T12:00:00Z'));
 
     await adapter.upsert('code-1', { clientId: 'client-a' }, 60);
@@ -147,8 +148,10 @@ describe('OidcValkeyAdapter', () => {
 
   it('revokes all primary keys indexed by grant id', async () => {
     const client = new FakeValkey();
-    const accessTokenAdapter = createOidcValkeyAdapter(client as any)('AccessToken');
-    const refreshTokenAdapter = createOidcValkeyAdapter(client as any)('RefreshToken');
+    const accessTokenAdapter = createOidcValkeyAdapter(client as unknown as Valkey)('AccessToken');
+    const refreshTokenAdapter = createOidcValkeyAdapter(client as unknown as Valkey)(
+      'RefreshToken',
+    );
 
     await accessTokenAdapter.upsert('access-1', { grantId: 'grant-1' }, 30);
     await refreshTokenAdapter.upsert('refresh-1', { grantId: 'grant-1' }, 300);

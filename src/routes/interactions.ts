@@ -2,13 +2,23 @@ import Express from 'express';
 import Provider from 'oidc-provider';
 import IAccountSource from '../interfaces/IAccountSource';
 import { createVctProviderFromEnv } from '../util/vctResolution';
-import { getConsentPreviewDataUri } from '../util/consentPreview';
+import { getConsentPreviewDataUri, type IssuerDisplay } from '../util/consentPreview';
 import { Authenticator } from '../authenticators';
-import { prependToPath } from 'wallet-common';
+import { prependToPath, type CredentialConfigurationSupported } from 'wallet-common';
 
 export const DATA_URI_FALLBACK = '/images/fallback-credential.svg';
 
 const vctEngine = createVctProviderFromEnv();
+
+type ConsentPromptDetails = {
+  missingOIDCScope?: string[];
+  missingOIDCClaims?: string[];
+  missingResourceScopes?: Record<string, string[]>;
+};
+
+type IssuerMetadata = {
+  credential_configurations_supported?: Record<string, CredentialConfigurationSupported>;
+};
 
 export default (
   app: Express.Router,
@@ -30,12 +40,12 @@ export default (
       throw new Error('Invalid prompt for consent completion');
     }
 
-    const accountId = (session as any)?.accountId as string | undefined;
+    const accountId = session?.accountId;
     if (!accountId) {
       throw new Error('Missing accountId in session');
     }
 
-    const details = (interaction.prompt.details || {}) as any;
+    const details = interaction.prompt.details as ConsentPromptDetails;
     let grantId = existingGrantId;
     let grant = grantId ? await provider.Grant.find(grantId) : undefined;
 
@@ -54,11 +64,10 @@ export default (
     if (details.missingOIDCClaims) {
       grant.addOIDCClaims(details.missingOIDCClaims);
     }
-    const missingResourceScopes = details.missingResourceScopes as
-      Record<string, string[]> | undefined;
+    const missingResourceScopes = details.missingResourceScopes;
     if (missingResourceScopes) {
       for (const [indicator, scopes] of Object.entries(missingResourceScopes)) {
-        grant.addResourceScope(indicator, (scopes as string[]).join(' '));
+        grant.addResourceScope(indicator, scopes.join(' '));
       }
     }
 
@@ -80,8 +89,12 @@ export default (
 
       const client = await provider.Client.find(params.client_id as string);
       console.log(uid, prompt, params, session, client);
-      let issuerMetadata: any = null;
-      let credentialConfigs: Array<{ scope: string; vct: string | null; display: any }> = [];
+      let issuerMetadata: IssuerMetadata | null = null;
+      let credentialConfigs: Array<{
+        scope: string;
+        vct: string | null;
+        display: IssuerDisplay | null;
+      }> = [];
       if (prompt.name === 'consent') {
         const issuerIdentifier = params.resource as string | undefined;
         const issuerMetadataUrl = prependToPath(
@@ -96,7 +109,7 @@ export default (
               },
             });
             if (issuerMetadataResponse.ok) {
-              issuerMetadata = await issuerMetadataResponse.json();
+              issuerMetadata = (await issuerMetadataResponse.json()) as IssuerMetadata;
             }
             if (issuerMetadata) {
               const vctScope = String(params.scope || '')
@@ -110,11 +123,11 @@ export default (
                 .filter(Boolean)
                 .map((scope: string) => {
                   const configs = issuerMetadata?.credential_configurations_supported ?? {};
-                  const cfg = Object.values(configs).find((c: any) => c?.scope === scope) as any;
+                  const cfg = Object.values(configs).find((candidate) => candidate.scope === scope);
                   return {
                     scope,
-                    vct: cfg?.vct ?? null,
-                    display: cfg?.credential_metadata.display ?? null,
+                    vct: cfg && 'vct' in cfg ? cfg.vct : null,
+                    display: cfg?.credential_metadata?.display ?? null,
                   };
                 });
             }

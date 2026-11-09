@@ -51,7 +51,6 @@ export class OpenID4VPService {
       {
         redirectUri: this.configuration.redirectUri,
         credentialEngineOptions: {
-          // @ts-ignore
           clockTolerance: 60,
           subtle: webcrypto.subtle,
           lang: 'en-US',
@@ -63,7 +62,7 @@ export class OpenID4VPService {
     );
   }
 
-  public async getSignedRequestObject(ctx: { req: Request; res: Response }): Promise<any> {
+  public async getSignedRequestObject(ctx: { req: Request; res: Response }): Promise<Response> {
     if (!ctx.req.query['id'] || typeof ctx.req.query['id'] !== 'string') {
       return ctx.res.status(500).send({ error: 'id does not exist on query params' });
     }
@@ -86,7 +85,7 @@ export class OpenID4VPService {
   }
 
   public async generateAuthorizationRequestURL(
-    presentationRequest: any,
+    presentationRequest: unknown,
     sessionId: string,
     callbackEndpoint?: string,
   ): Promise<{ url: URL; stateId: string }> {
@@ -104,9 +103,9 @@ export class OpenID4VPService {
   }
 
   public async responseHandler(ctx: { req: Request; res: Response }): Promise<void> {
-    let vp_token = ctx.req.body?.vp_token;
-    let state = ctx.req.body?.state;
-    let presentation_submission = ctx.req.body.presentation_submission
+    const vp_token = ctx.req.body?.vp_token;
+    const state = ctx.req.body?.state;
+    const presentation_submission = ctx.req.body.presentation_submission
       ? JSON.parse(decodeURI(ctx.req.body.presentation_submission))
       : null;
 

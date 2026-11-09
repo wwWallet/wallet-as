@@ -207,15 +207,15 @@ describe('app integration', () => {
       expect(porToken).toBeTruthy();
       expect(pidToken).toBeTruthy();
 
-      const porGrantId = (porToken as any).grantId;
-      const pidGrantId = (pidToken as any).grantId;
+      const porGrantId = porToken!.grantId;
+      const pidGrantId = pidToken!.grantId;
 
-      expect((pidToken as any).clientId).toBe((porToken as any).clientId);
-      expect((pidToken as any).sessionUid).toBe((porToken as any).sessionUid);
+      expect(pidToken!.clientId).toBe(porToken!.clientId);
+      expect(pidToken!.sessionUid).toBe(porToken!.sessionUid);
       expect(typeof porGrantId).toBe('string');
-      expect(porGrantId.length).toBeGreaterThan(0);
+      expect(porGrantId!.length).toBeGreaterThan(0);
       expect(typeof pidGrantId).toBe('string');
-      expect(pidGrantId.length).toBeGreaterThan(0);
+      expect(pidGrantId!.length).toBeGreaterThan(0);
       expect(pidGrantId).toBe(porGrantId);
 
       const refreshedPorTokenResponse = await refreshAccessToken(agent, {
@@ -227,7 +227,7 @@ describe('app integration', () => {
       );
 
       expect(refreshedPorToken).toBeTruthy();
-      expect((refreshedPorToken as any).grantId).toBe(porGrantId);
+      expect(refreshedPorToken!.grantId).toBe(porGrantId);
     });
 
     it('keeps POR refresh token valid when PID issuance starts after POR access token expires', async () => {
@@ -282,15 +282,15 @@ describe('app integration', () => {
       expect(porToken).toBeUndefined();
       expect(pidToken).toBeTruthy();
 
-      const porGrantId = (savedPorRefreshTokenAfterPid as any).grantId;
-      const pidGrantId = (pidToken as any).grantId;
+      const porGrantId = savedPorRefreshTokenAfterPid!.grantId;
+      const pidGrantId = pidToken!.grantId;
 
       expect(typeof porGrantId).toBe('string');
-      expect(porGrantId.length).toBeGreaterThan(0);
+      expect(porGrantId!.length).toBeGreaterThan(0);
       expect(typeof pidGrantId).toBe('string');
-      expect(pidGrantId.length).toBeGreaterThan(0);
+      expect(pidGrantId!.length).toBeGreaterThan(0);
       expect(pidGrantId).toBe(porGrantId);
-      expect((savedPorRefreshTokenAfterPid as any).grantId).toBe(porGrantId);
+      expect(savedPorRefreshTokenAfterPid!.grantId).toBe(porGrantId);
 
       const refreshedPorTokenResponse = await refreshAccessToken(agent, {
         refreshToken: porTokenResponse.refreshToken,
@@ -301,7 +301,7 @@ describe('app integration', () => {
       );
 
       expect(refreshedPorToken).toBeTruthy();
-      expect((refreshedPorToken as any).grantId).toBe(porGrantId);
+      expect(refreshedPorToken!.grantId).toBe(porGrantId);
     });
   });
 
@@ -462,21 +462,21 @@ describe('app integration', () => {
 
       expect(accessToken).toBeTruthy();
 
-      const sessionUid = (accessToken as any).sessionUid;
+      const sessionUid = accessToken!.sessionUid;
       expect(typeof sessionUid).toBe('string');
 
-      const firstSession = await firstProvider.Session.findByUid(sessionUid);
+      const firstSession = await firstProvider.Session.findByUid(sessionUid as string);
       expect(firstSession).toBeTruthy();
 
       vi.resetModules();
 
       const { createApp: createSecondApp } = await import('../../src/app');
 
-      const { app: secondApp, provider: secondProvider } = createSecondApp();
+      const { provider: secondProvider } = createSecondApp();
 
       const secondSession = await secondProvider.Session.findByUid(sessionUid);
       expect(secondSession).toBeTruthy();
-      expect((secondSession as any).accountId).toBe((firstSession as any).accountId);
+      expect(secondSession!.accountId).toBe(firstSession!.accountId);
     });
 
     it('keeps a pending deferred issuance refresh token usable after an application restart', async () => {
