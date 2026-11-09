@@ -28,7 +28,7 @@ export default async function preAuthorizedCodeHandler(
 
   validatePreAuthorizedCodeGrant(consumedGrant, tx_code);
 
-  const client = await provider.Client.find('__pre-authorized_code_client__');
+  const client = ctx.oidc.client ?? (await provider.Client.find('__pre-authorized_code_client__'));
   if (!client) {
     throw new errors.InvalidClient('Could not find pre-authorized_code client');
   }
