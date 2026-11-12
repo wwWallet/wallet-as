@@ -56,6 +56,9 @@ export function createApp() {
           }
         : {}),
     },
+    enabledJWA: {
+      dPoPSigningAlgValues: ['ES256'],
+    },
     scopes: config.scopes,
     interactions: {
       policy: interactionPolicies(),
@@ -74,6 +77,12 @@ export function createApp() {
     },
     features: {
       devInteractions: { enabled: false },
+      dPoP: {
+        enabled: true,
+        nonceSecret: config.dpopNonceSecret,
+        requireNonce: () => config.dpopNonceRequired,
+        allowReplay: false,
+      },
       introspection: {
         enabled: true,
         allowedPolicy: introspectionAllowedPolicy,
@@ -126,8 +135,22 @@ export function createApp() {
       return issuerState ? { issuer_state: issuerState } : undefined;
     },
   });
+  provider.use(async (ctx, next) => {
+    await next();
+    const accessToken = ctx.oidc.entities.AccessToken as { jkt?: unknown } | undefined;
+    if (
+      ctx.oidc.route === 'token' &&
+      typeof accessToken?.jkt === 'string' &&
+      typeof ctx.body === 'object' &&
+      ctx.body !== null &&
+      !Array.isArray(ctx.body)
+    ) {
+      (ctx.body as Record<string, unknown>).cnf = { jkt: accessToken.jkt };
+    }
+  });
   provider.on('authorization_code.saved', (authorizationCode) => {
-    const issuerState = oidc.Provider.ctx?.oidc.params?.issuer_state;
+    const issuerStateValue = oidc.Provider.ctx?.oidc.params?.issuer_state;
+    const issuerState = typeof issuerStateValue === 'string' ? issuerStateValue : undefined;
     void saveIssuerStateForAuthorizationCode(authorizationCode.jti, issuerState);
   });
   provider.proxy = true;
@@ -148,7 +171,18 @@ export function createApp() {
     );
 
     routesRoot.post('/token', (req, _res, next) => {
-      if (req.body?.grant_type === 'urn:ietf:params:oauth:grant-type:pre-authorized_code') {
+      const hasClientAuthentication = Boolean(
+        req.body?.client_id ||
+        req.body?.client_secret ||
+        req.body?.client_assertion ||
+        req.headers.authorization ||
+        req.headers['oauth-client-attestation'],
+      );
+
+      if (
+        req.body?.grant_type === 'urn:ietf:params:oauth:grant-type:pre-authorized_code' &&
+        !hasClientAuthentication
+      ) {
         req.body.client_id = '__pre-authorized_code_client__';
       }
 

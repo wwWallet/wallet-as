@@ -1,4 +1,4 @@
-import { PreAuthorizedCodeGrant } from 'wallet-common';
+import type { PreAuthorizedCodeGrant } from 'wallet-common';
 import config from '../config';
 
 export interface PreAuthorizedCodeStoreItem extends PreAuthorizedCodeGrant {
@@ -9,15 +9,17 @@ export interface PreAuthorizedCodeStoreItem extends PreAuthorizedCodeGrant {
   scope?: string;
 }
 
-type PreAuthorizedCodeError = {
+export interface PreAuthorizedCodeError {
   error: string;
   error_description?: string;
-};
+}
+
+export type ConsumePreAuthorizedCodeResult = PreAuthorizedCodeStoreItem | PreAuthorizedCodeError;
 
 export async function consumePreAuthorizedCode(
   code: string,
   token?: string | number,
-): Promise<PreAuthorizedCodeStoreItem | PreAuthorizedCodeError> {
+): Promise<ConsumePreAuthorizedCodeResult> {
   const grantResponse = await fetch(`${config.preAuthorizedCodeApiUrl}/pre-authorized-code`, {
     method: 'POST',
     headers: {
@@ -30,10 +32,20 @@ export async function consumePreAuthorizedCode(
     }),
   });
 
-  if (!grantResponse) {
+  if (!grantResponse.ok) {
     throw new Error('Requested pre-authorized code is invalid.');
   }
 
-  const responseBody = await grantResponse.json();
-  return responseBody as PreAuthorizedCodeStoreItem | PreAuthorizedCodeError;
+  let responseBody: unknown;
+  try {
+    responseBody = await grantResponse.json();
+  } catch {
+    throw new Error('Pre-authorized code API returned an invalid response.');
+  }
+
+  if (!responseBody || typeof responseBody !== 'object') {
+    throw new Error('Pre-authorized code API returned an invalid response.');
+  }
+
+  return responseBody as ConsumePreAuthorizedCodeResult;
 }
