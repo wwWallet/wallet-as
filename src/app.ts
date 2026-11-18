@@ -28,6 +28,8 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.set('views', viewsPath);
   app.set('view engine', 'pug');
+  const publicPath = path.join(process.cwd(), 'public');
+  app.locals.displayName = config.displayName;
   app.locals.baseUrl = config.serviceUrl;
   app.locals.demoMode = config.demoUsername || false;
   app.locals.demoUsername = config.demoUsername;
@@ -134,7 +136,7 @@ export function createApp() {
   const accountSource = config.demoUsername ? new DemoAccountSource() : new FileAccountSource();
 
   const routesRoot = express.Router();
-  routesRoot.use(express.static(path.join(process.cwd(), 'public')));
+  routesRoot.use(express.static(publicPath));
   routesRoot.get('/', (_req, res) => res.render('index'));
   authenticator.registerRoutes(routesRoot, provider, accountSource);
   interactions(routesRoot, provider, accountSource, authenticator);

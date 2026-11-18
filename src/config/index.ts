@@ -106,6 +106,7 @@ function loadOAuth2Clients(): oidc.ClientMetadata[] {
 }
 
 export default {
+  displayName: process.env.DISPLAY_NAME?.trim() || 'Wallet AS',
   serviceUrl: serviceUrl,
   basePath: basePath,
   walletUrl: process.env.WALLET_URL || 'http://localhost:3000',

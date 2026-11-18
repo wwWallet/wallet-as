@@ -25,6 +25,22 @@ describe('config', () => {
     }
   }
 
+  it.each([
+    ['Custom Wallet', 'Custom Wallet'],
+    ['', 'Wallet AS'],
+    ['   ', 'Wallet AS'],
+    [undefined, 'Wallet AS'],
+  ])('resolves DISPLAY_NAME %s to %s', async (value, expected) => {
+    const originalEnv = process.env;
+    process.env = { ...originalEnv, DISPLAY_NAME: value };
+    try {
+      const { default: config } = await importConfigFromTempProject([]);
+      expect(config.displayName).toBe(expected);
+    } finally {
+      process.env = originalEnv;
+    }
+  });
+
   it('normalizes BASE_PATH and reads basic env vars', async () => {
     const originalEnv = process.env;
     process.env = {

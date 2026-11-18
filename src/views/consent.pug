@@ -4,7 +4,8 @@ html(lang="en")
     meta(charset="UTF-8")
     base(href=baseUrl + '/')
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    title Wallet AS · Consent
+    title #{displayName} · Consent
+    link(rel="icon" href="images/favicon.ico")
     link(rel="stylesheet", href="styles/base.css")
     link(rel="stylesheet", href="styles/consent.css")
 
@@ -15,14 +16,15 @@ html(lang="en")
     .consent-page
       .consent-header
         .consent__connection
-          .consent__app-circle AS
+          .consent__app-circle
+            img(src="images/logo.png", alt=displayName + ' logo', onerror="this.hidden=true;this.nextElementSibling.hidden=false")
+            span(hidden) AS
           .consent__connector
             span ✔
           .consent__app-circle
             if client.logoUri
-              img(src=client.logoUri, alt=clientName + ' logo')
-            else
-              span #{clientName.charAt(0).toUpperCase()}
+              img(src=client.logoUri, alt=clientName + ' logo', onerror="this.hidden=true;this.nextElementSibling.hidden=false")
+            span(hidden=!!client.logoUri) #{clientName.charAt(0).toUpperCase()}
 
         h1.consent__title Authorize #{clientName}
 
