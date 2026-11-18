@@ -33,7 +33,7 @@ describe('branding views', () => {
     },
   );
 
-  it.each(['index', 'login', 'consent', 'pid-callback'])(
+  it.each(['index', 'login', 'consent'])(
     'renders a favicon without a webmanifest in %s',
     (view) => {
       const html = render(view);
@@ -46,6 +46,8 @@ describe('branding views', () => {
     const html = render('pid-callback');
     expect(html).toContain('<title>Completing sign-in…</title>');
     expect(html).not.toContain('<base ');
+    expect(html).toContain(`<link rel="icon" href="${baseUrl}/images/favicon.ico">`);
+    expect(html).not.toContain('rel="manifest"');
   });
 
   it('renders home branding and the wwWallet attribution link', () => {

@@ -1,6 +1,5 @@
 import express from 'express';
 import path from 'path';
-import fs from 'node:fs';
 import * as oidc from 'oidc-provider';
 import interactions from './routes/interactions';
 import { DemoAccountSource } from './account/DemoAccountSource';
