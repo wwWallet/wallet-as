@@ -128,20 +128,24 @@ describe('attestation client authentication through the AS', () => {
     config.openid4vcProfile = 'DEFAULT';
   });
 
-  async function attestation(key = attesterKey) {
-    return new SignJWT({ cnf: { jwk: await exportJWK(instanceKeys.publicKey) } })
+  async function attestation(key = attesterKey, claims: Record<string, unknown> = {}) {
+    const now = Math.floor(Date.now() / 1000);
+    return new SignJWT({
+      iat: now,
+      exp: now + 300,
+      cnf: { jwk: await exportJWK(instanceKeys.publicKey) },
+      ...claims,
+    })
       .setProtectedHeader({ alg: 'ES256', typ: 'oauth-client-attestation+jwt', x5c: [leafBase64] })
       .setSubject(clientId)
-      .setIssuedAt()
-      .setExpirationTime('5m')
       .sign(key);
   }
 
-  async function pop(challenge?: string, audience = issuer) {
+  async function pop(challenge?: string, audience = issuer, iat = Math.floor(Date.now() / 1000)) {
     return new SignJWT(challenge ? { challenge } : {})
       .setProtectedHeader({ alg: 'ES256', typ: 'oauth-client-attestation-pop+jwt' })
       .setAudience(audience)
-      .setIssuedAt()
+      .setIssuedAt(iat)
       .setJti(randomUUID())
       .sign(instanceKeys.privateKey);
   }
@@ -202,6 +206,22 @@ describe('attestation client authentication through the AS', () => {
     );
   });
 
+  it('accepts an older PoP with a fresh server challenge', async () => {
+    const response = await tokenRequest(
+      await attestation(),
+      await pop(await challenge(), issuer, Math.floor(Date.now() / 1000) - 3600),
+    );
+    expect(response.status).toBe(200);
+    expect(consumeCode).toHaveBeenCalledOnce();
+  });
+
+  it('rejects an invalid challenge even for a newly issued PoP', async () => {
+    const response = await tokenRequest(await attestation(), await pop('invalid-challenge'));
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('use_attestation_challenge');
+    expect(consumeCode).not.toHaveBeenCalled();
+  });
+
   it('rejects an attestation signed by a key different from its trusted certificate', async () => {
     const wrongSigner = await generateKeyPair('ES256');
     const response = await tokenRequest(
@@ -211,6 +231,51 @@ describe('attestation client authentication through the AS', () => {
     expect(response.status).toBe(401);
     expect(response.body.error).toBe('invalid_client');
     expect(consumeCode).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, {}, { jwk: { kty: 'EC', d: 'private' } }])(
+    'leaves invalid cnf rejection to the provider: %j',
+    async (cnf) => {
+      const response = await tokenRequest(
+        await attestation(attesterKey, { cnf }),
+        await pop(await challenge()),
+      );
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe('invalid_client');
+      expect(consumeCode).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([undefined, 'invalid', 0])('provider rejects invalid or expired exp: %j', async (exp) => {
+    const response = await tokenRequest(
+      await attestation(attesterKey, { exp }),
+      await pop(await challenge()),
+    );
+    expect(response.status).toBe(401);
+    expect(response.body.error).toBe('invalid_client');
+    expect(consumeCode).not.toHaveBeenCalled();
+  });
+
+  it('provider rejects disallowed attestation algorithms', async () => {
+    const key = await generateKeyPair('ES384');
+    const wia = await new SignJWT({ cnf: { jwk: await exportJWK(instanceKeys.publicKey) } })
+      .setProtectedHeader({ alg: 'ES384', typ: 'oauth-client-attestation+jwt', x5c: [leafBase64] })
+      .setSubject(clientId)
+      .setIssuedAt()
+      .setExpirationTime('5m')
+      .sign(key.privateKey);
+    const response = await tokenRequest(wia, await pop(await challenge()));
+    expect(response.status).toBe(401);
+    expect(consumeCode).not.toHaveBeenCalled();
+  });
+
+  it('accepts fractional expiration and future iat under DEFAULT', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const response = await tokenRequest(
+      await attestation(attesterKey, { exp: now + 300.5, iat: now + 600 }),
+      await pop(await challenge()),
+    );
+    expect(response.status).toBe(200);
   });
 
   it('rejects a PoP intended for another AS', async () => {

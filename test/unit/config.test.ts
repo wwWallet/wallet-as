@@ -12,7 +12,7 @@ describe('config', () => {
     vi.stubEnv('ABCA_CHALLENGE_SECRET', 'ab'.repeat(32));
     vi.stubEnv('DPOP_NONCE_SECRET', 'test-dpop-nonce-secret-0123456789ab');
     vi.stubEnv('OPENID4VC_PROFILE', 'DEFAULT');
-    vi.stubEnv('WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS', 'https://status.example');
+    vi.stubEnv('STATUS_LIST_ALLOWED_ORIGINS', 'https://status.example');
   });
 
   afterEach(() => {
@@ -190,31 +190,94 @@ describe('config', () => {
     'requires status origins under WEBUILD (case %#)',
     async (value) => {
       vi.stubEnv('OPENID4VC_PROFILE', 'WEBUILD');
-      vi.stubEnv('WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS', value);
+      vi.stubEnv('STATUS_LIST_ALLOWED_ORIGINS', value);
       await expectFatalConfig(
         () => importConfigFromTempProject([]),
-        'FATAL: WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS is required when OPENID4VC_PROFILE=WEBUILD.',
+        'FATAL: STATUS_LIST_ALLOWED_ORIGINS is required when OPENID4VC_PROFILE=WEBUILD.',
       );
     },
   );
 
-  it('does not require status origins under DEFAULT', async () => {
-    vi.stubEnv('WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS', undefined);
-    const { default: config } = await importConfigFromTempProject([]);
-    expect(config.weBuildAbcaStatusListAllowedOrigins).toEqual([]);
+  it('warns about unavailable status lists under DEFAULT with an empty allowlist', async () => {
+    vi.stubEnv('STATUS_LIST_ALLOWED_ORIGINS', ' , ');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { default: config } = await importConfigFromTempProject([]);
+      expect(config.statusListAllowedOrigins).toEqual([]);
+      expect(warn).toHaveBeenCalledWith(
+        'WARNING: STATUS_LIST_ALLOWED_ORIGINS is empty; status lists are unavailable for this deployment.',
+      );
+    } finally {
+      warn.mockRestore();
+    }
   });
 
-  it('reads the WE BUILD status origin list', async () => {
-    vi.stubEnv('OPENID4VC_PROFILE', 'WEBUILD');
-    vi.stubEnv(
-      'WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS',
-      ' https://one.example, https://two.example, ',
-    );
-    const { default: config } = await importConfigFromTempProject([]);
-    expect(config.weBuildAbcaStatusListAllowedOrigins).toEqual([
-      'https://one.example',
-      'https://two.example',
+  async function loadProductionConfig() {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('DATA_STORE_PASSWORD', 'test-password');
+    vi.stubEnv('OIDC_JWKS_PATH', './keys/oidc.jwks.json');
+    return importConfigFromTempProject([], (root) => {
+      fs.mkdirSync(path.join(root, 'keys'));
+      fs.writeFileSync(path.join(root, 'keys/oidc.jwks.json'), JSON.stringify({ keys: [{}] }));
+    });
+  }
+
+  it.each(['DEFAULT', 'WEBUILD'])('validates production origins under %s', async (profile) => {
+    vi.stubEnv('OPENID4VC_PROFILE', profile);
+    for (const origin of [
+      'http://status.example',
+      'http://localhost',
+      'https://localhost',
+      'https://127.0.0.1',
+      'https://[::1]',
+      'https://LOCALHOST.',
+      'https://127.1',
+    ]) {
+      vi.stubEnv('STATUS_LIST_ALLOWED_ORIGINS', origin);
+      await expectFatalConfig(
+        loadProductionConfig,
+        /^FATAL: STATUS_LIST_ALLOWED_ORIGINS must contain valid origins/,
+      );
+    }
+    vi.stubEnv('STATUS_LIST_ALLOWED_ORIGINS', ' https://STATUS.example:443/ ');
+    expect((await loadProductionConfig()).default.statusListAllowedOrigins).toEqual([
+      'https://status.example',
     ]);
+  });
+
+  it.each(['http://localhost:8002', 'http://127.0.0.1:8002', 'http://[::1]:8002'])(
+    'permits HTTP loopback outside production: %s',
+    async (origin) => {
+      vi.stubEnv('NODE_ENV', 'development');
+      vi.stubEnv('STATUS_LIST_ALLOWED_ORIGINS', origin);
+      expect((await importConfigFromTempProject([])).default.statusListAllowedOrigins).toEqual([
+        origin,
+      ]);
+    },
+  );
+
+  it.each([
+    'not-a-url',
+    'https://user:password@status.example',
+    'https://status.example/path',
+    'https://status.example?query',
+    'https://status.example#fragment',
+    'ftp://status.example',
+    'http://status.example',
+  ])('rejects invalid status origins at startup: %s', async (origin) => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('STATUS_LIST_ALLOWED_ORIGINS', origin);
+    await expectFatalConfig(
+      () => importConfigFromTempProject([]),
+      /^FATAL: STATUS_LIST_ALLOWED_ORIGINS must contain valid origins/,
+    );
+  });
+
+  it('reads the shared status origin list', async () => {
+    vi.stubEnv('OPENID4VC_PROFILE', 'WEBUILD');
+    vi.stubEnv('STATUS_LIST_ALLOWED_ORIGINS', ' https://one.example, https://two.example, ');
+    const { default: config } = await importConfigFromTempProject([]);
+    expect(config.statusListAllowedOrigins).toEqual(['https://one.example', 'https://two.example']);
   });
 
   it.each([32, 33])('accepts a %i-character DPoP nonce secret', async (length) => {

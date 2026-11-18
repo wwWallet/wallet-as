@@ -7,6 +7,7 @@ const VALKEY_PASSWORD = 'test-secret';
 
 export default async function setup() {
   // Deterministic test fixture only; never use this value in a deployment.
+  process.env.STATUS_LIST_ALLOWED_ORIGINS = 'https://status.example';
   process.env.ABCA_CHALLENGE_SECRET = 'ab'.repeat(32);
   process.env.DPOP_NONCE_SECRET = 'test-dpop-nonce-secret-0123456789ab';
   valkeyContainer = await new GenericContainer('valkey/valkey:latest')

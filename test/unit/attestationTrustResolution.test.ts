@@ -148,7 +148,7 @@ describe('attestation trust resolution', () => {
     ['AAAA'],
     ['A'.repeat(16 * 1024 + 4)],
     Array(6).fill('AAAA'),
-  ])('rejects missing, malformed, or oversized x5c (case %#)', async (x5c) => {
+  ])('rejects missing or malformed x5c (case %#)', async (x5c) => {
     // Explicit undefined must not select resolve's default fixture.
     await expect(
       getAttestationSignaturePublicKey(
@@ -160,17 +160,42 @@ describe('attestation trust resolution', () => {
     ).rejects.toMatchObject({ error: 'invalid_client_attestation' });
   });
 
-  it('rejects unsupported signing algorithms', async () => {
-    await expect(resolve([leafBase64], 'ES384')).rejects.toMatchObject({
-      error_description: 'unsupported client attestation alg',
+  it.each(['!!!!', '', 42])('rejects an invalid non-leaf chain entry: %j', async (entry) => {
+    await expect(resolve([leafBase64, entry])).rejects.toMatchObject({
+      error: 'invalid_client_attestation',
     });
+  });
+
+  it('reports a malformed leaf certificate distinctly', async () => {
+    await expect(
+      resolve([Buffer.from('not a certificate').toString('base64')]),
+    ).rejects.toMatchObject({
+      error: 'invalid_client_attestation',
+      error_description: 'malformed client attestation signing certificate',
+    });
+  });
+
+  it('reports public key export failure distinctly', async () => {
+    const keySpy = vi
+      .spyOn(X509Certificate.prototype, 'publicKey', 'get')
+      .mockImplementation(() => {
+        throw new Error('key unavailable');
+      });
+    try {
+      await expect(resolve()).rejects.toMatchObject({
+        error: 'invalid_client_attestation',
+        error_description: 'unable to export client attestation signing certificate public key',
+      });
+    } finally {
+      keySpy.mockRestore();
+    }
   });
 
   it('rejects a CA leaf even when that CA is trusted', async () => {
     await expect(
       resolve([new X509Certificate(rootPem).raw.toString('base64')]),
     ).rejects.toMatchObject({
-      error_description: 'invalid client attestation signing certificate',
+      error_description: 'CA certificates cannot sign Wallet Instance Attestations',
     });
   });
 

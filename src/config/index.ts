@@ -128,17 +128,48 @@ const openid4vcProfile = z
   .enum(['DEFAULT', 'WEBUILD'])
   .default('DEFAULT')
   .parse(process.env.OPENID4VC_PROFILE);
-const weBuildAbcaStatusListAllowedOrigins = (
-  process.env.WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS || ''
-)
+const statusListAllowedOrigins = (process.env.STATUS_LIST_ALLOWED_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
-  .filter(Boolean);
-if (openid4vcProfile === 'WEBUILD' && weBuildAbcaStatusListAllowedOrigins.length === 0) {
-  console.error(
-    `FATAL: WEBUILD_ABCA_STATUS_LIST_ALLOWED_ORIGINS is required when OPENID4VC_PROFILE=WEBUILD.`,
+  .filter(Boolean)
+  .map((origin) => {
+    try {
+      const url = new URL(origin);
+      const hostname = url.hostname.toLowerCase().replace(/\.$/, '');
+      const loopback =
+        hostname === 'localhost' ||
+        hostname.endsWith('.localhost') ||
+        /^127\./.test(hostname) ||
+        hostname === '[::1]';
+      const production = process.env.NODE_ENV === 'production';
+      if (
+        url.username ||
+        url.password ||
+        url.search ||
+        url.hash ||
+        url.pathname !== '/' ||
+        (production
+          ? url.protocol !== 'https:' || loopback
+          : url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback))
+      ) {
+        throw new Error('invalid origin');
+      }
+      return url.origin;
+    } catch {
+      console.error(
+        'FATAL: STATUS_LIST_ALLOWED_ORIGINS must contain valid origins; production requires HTTPS and forbids localhost and loopback addresses. HTTP loopback is allowed outside production.',
+      );
+      process.exit(1);
+    }
+  });
+if (statusListAllowedOrigins.length === 0) {
+  if (openid4vcProfile === 'WEBUILD') {
+    console.error('FATAL: STATUS_LIST_ALLOWED_ORIGINS is required when OPENID4VC_PROFILE=WEBUILD.');
+    process.exit(1);
+  }
+  console.warn(
+    'WARNING: STATUS_LIST_ALLOWED_ORIGINS is empty; status lists are unavailable for this deployment.',
   );
-  process.exit(1);
 }
 
 export default {
@@ -158,8 +189,6 @@ export default {
     accessToken: Number(process.env.ACCESS_TOKEN_TTL) || 30,
     refreshToken: Number(process.env.REFRESH_TOKEN_TTL) || 2592000,
     authorizationCode: Number(process.env.AUTHORIZATION_CODE_TTL) || 60,
-    clientAttestation: Number(process.env.ABCA_CLIENT_ATTESTATION_MAX_AGE) || 86400,
-    clientAttestationPoP: Number(process.env.ABCA_CLIENT_ATTESTATION_POP_MAX_AGE) || 60,
   },
   demoUsername: process.env.USER_PASS_PID_DEMO_USERNAME || null,
   demoPassword: process.env.USER_PASS_PID_DEMO_PASSWORD || null,
@@ -183,5 +212,5 @@ export default {
   preAuthorizedCodeApiBearerToken: process.env.PRE_AUTHORIZED_CODE_API_BEARER_TOKEN || '',
   abcaChallengeSecret,
   openid4vcProfile,
-  weBuildAbcaStatusListAllowedOrigins,
+  statusListAllowedOrigins,
 };

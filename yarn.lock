@@ -37,30 +37,60 @@
   resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-darwin-arm64/-/cbor-extract-darwin-arm64-2.2.2.tgz#dc4a0b5719e33168f8eaf3d884726b166052540b"
   integrity sha512-ZKZ/F8US7JR92J4DMct6cLW/Y66o2K576+zjlEN/MevH70bFIsB10wkZEQPLzl2oNh2SMGy55xpJ9JoBRl5DOA==
 
+"@cbor-extract/cbor-extract-darwin-arm64@2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-darwin-arm64/-/cbor-extract-darwin-arm64-2.2.3.tgz#f8245810170809b5d41dfa10bb75a29704659637"
+  integrity sha512-qpUy9Yoisi6a7QHOVa+AlnqfN7eVstSRhpLwiLnwi6i3SNLkM5D2Z7MXl4LC5nUGA77mZEt479cPH3u8GD163Q==
+
 "@cbor-extract/cbor-extract-darwin-x64@2.2.2":
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-darwin-x64/-/cbor-extract-darwin-x64-2.2.2.tgz#871436ebd796789027e098dd6a66654d80d9c272"
   integrity sha512-32b1mgc+P61Js+KW9VZv/c+xRw5EfmOcPx990JbCBSkYJFY0l25VinvyyWfl+3KjibQmAcYwmyzKF9J4DyKP/Q==
+
+"@cbor-extract/cbor-extract-darwin-x64@2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-darwin-x64/-/cbor-extract-darwin-x64-2.2.3.tgz#963bf3b24d487765bb1f4ffd86ce30f15cbd24ac"
+  integrity sha512-6bZbK7dyKn8BUNmG3UfzSnM4L/OzJ8xGAtBHYycprl+bgvtZmZoQC7CucWXuF/oHJP5skzqkqFr6BLSSGIkoWw==
 
 "@cbor-extract/cbor-extract-linux-arm64@2.2.2":
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-linux-arm64/-/cbor-extract-linux-arm64-2.2.2.tgz#4e0babfced263b9965806816058afd8b01631991"
   integrity sha512-wfqgzqCAy/Vn8i6WVIh7qZd0DdBFaWBjPdB6ma+Wihcjv0gHqD/mw3ouVv7kbbUNrab6dKEx/w3xQZEdeXIlzg==
 
+"@cbor-extract/cbor-extract-linux-arm64@2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-linux-arm64/-/cbor-extract-linux-arm64-2.2.3.tgz#cdbb06a1547f99d5a5d908ba0264526041cc885c"
+  integrity sha512-QAuFuQkOw0cm4MNc+QwxH9aiMxmrczESnVEu33B8m2Du9fBuH/1AvJfmO8YajpeWLoHqt2iUG3d1/gIWAKY8IQ==
+
 "@cbor-extract/cbor-extract-linux-arm@2.2.2":
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-linux-arm/-/cbor-extract-linux-arm-2.2.2.tgz#ed2b74eb0099242d946084ea6ba83d4d20ceb832"
   integrity sha512-tNg0za41TpQfkhWjptD+0gSD2fggMiDCSacuIeELyb2xZhr7PrhPe5h66Jc67B/5dmpIhI2QOUtv4SBsricyYQ==
+
+"@cbor-extract/cbor-extract-linux-arm@2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-linux-arm/-/cbor-extract-linux-arm-2.2.3.tgz#713e441d1a9ce1f84123d8839b3f60453da419c1"
+  integrity sha512-joCovTc7uEYCL9XxdAJJpGIH7Vvc31Fi7vh3HnlY5zgkLSU/64WxYl5iUi/puE21qT3bmxMfOZEZUbnqVKeJTQ==
 
 "@cbor-extract/cbor-extract-linux-x64@2.2.2":
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-linux-x64/-/cbor-extract-linux-x64-2.2.2.tgz#d5d2a2bac7aed54a36246e1f40878bb3475156f6"
   integrity sha512-rpiLnVEsqtPJ+mXTdx1rfz4RtUGYIUg2rUAZgd1KjiC1SehYUSkJN7Yh+aVfSjvCGtVP0/bfkQkXpPXKbmSUaA==
 
+"@cbor-extract/cbor-extract-linux-x64@2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-linux-x64/-/cbor-extract-linux-x64-2.2.3.tgz#f6b7c21cac0c4a80cc67d8a026e65544a65d670a"
+  integrity sha512-IQMPVLulOvFv9Had7J1idJyfQzsFamDVdjH37qW7suHI7mgO4w1Oo3MisL7AjnWARxo0/ZmEEQ3i81WA7y34Ug==
+
 "@cbor-extract/cbor-extract-win32-x64@2.2.2":
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-win32-x64/-/cbor-extract-win32-x64-2.2.2.tgz#adcd1cae6cfc5ba3dd1ace65642e7e63db744eca"
   integrity sha512-dI+9P7cfWxkTQ+oE+7Aa6onEn92PHgfWXZivjNheCRmTBDBf2fx6RyTi0cmgpYLnD1KLZK9ZYrMxaPZ4oiXhGA==
+
+"@cbor-extract/cbor-extract-win32-x64@2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@cbor-extract/cbor-extract-win32-x64/-/cbor-extract-win32-x64-2.2.3.tgz#f5dc71d1ab5849af54e31911b35fb7573d40e8a7"
+  integrity sha512-fGFfq6F3l0GCoKOZeyjjm3q+NHO7jo8ILtQ93U3rYJOgG2BGLS/QmBdoFLNEsoWPjyxAS8svWhTyo73MTDawog==
 
 "@cspotcode/source-map-support@^0.8.0":
   version "0.8.1"
@@ -265,6 +295,30 @@
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
+"@owf/cose@0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@owf/cose/-/cose-0.8.0.tgz#a3563bd4b0ee5f4c7fcfcfe84437988138ca2a0b"
+  integrity sha512-SWT769IAgbam6SXEupQzU7zk2x6vpnj877yXu0EsE0A3sexw1g0oURoThYhvCDq7eRJsM2nft0xtQ6JnCQcQfA==
+  dependencies:
+    "@owf/identity-common" "0.8.0"
+    cbor-x "^1.6.9"
+    zod "^4.6.7"
+
+"@owf/identity-common@0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@owf/identity-common/-/identity-common-0.8.0.tgz#a91cbc70c32609e2a21ef9241b051481b9a2ef0c"
+  integrity sha512-pL+Isfs7JDPv7eFbuQ8K9xDHYUa79KqlJz4ZUImc3L8lFbWfrddIxToICeOsYh6ccOkeKVo4SpcsLPcq+M3cDA==
+  dependencies:
+    zod "^4.6.7"
+
+"@owf/jose@0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@owf/jose/-/jose-0.8.0.tgz#f0723ad44918af314b2a09d3df76582c61f4156f"
+  integrity sha512-fZvKQk5tJP7AuSQm1vk/F1YFzmgqAG7ANNkj1lXRUcLpaIw9w+My2SvHX4c44Gl9kQOto6Di9bPDqs3jYTGgmA==
+  dependencies:
+    "@owf/identity-common" "0.8.0"
+    zod "^4.6.7"
+
 "@owf/mdoc@^0.6.0":
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/@owf/mdoc/-/mdoc-0.6.0.tgz#b096bfa555f87f5aca154840fc5e243a15728bc0"
@@ -273,6 +327,18 @@
     cbor-x "^1.6.4"
     zod "^4.3.6"
     zod-validation-error "^5.0.0"
+
+"@owf/token-status-list@0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@owf/token-status-list/-/token-status-list-0.8.0.tgz#2631dd75d865e8329b7f1e90a2404facfd2d7cea"
+  integrity sha512-5u8vDPkwXxJmxa1GeoZIIRge2PTXeDNdVPd9wH23h2uhxg5M4ilWAeiJ74p3jvGt66CgoiIdUirhZlhX3o/sTw==
+  dependencies:
+    "@owf/cose" "0.8.0"
+    "@owf/identity-common" "0.8.0"
+    "@owf/jose" "0.8.0"
+    cbor-x "^1.6.9"
+    pako "^3.0.3"
+    zod "^4.6.7"
 
 "@oxc-project/types@=0.151.0":
   version "0.151.0"
@@ -1407,12 +1473,33 @@ cbor-extract@^2.2.2:
     "@cbor-extract/cbor-extract-linux-x64" "2.2.2"
     "@cbor-extract/cbor-extract-win32-x64" "2.2.2"
 
+cbor-extract@^2.2.3:
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/cbor-extract/-/cbor-extract-2.2.3.tgz#99fb0c048ed718177b07282bfdab2fe7bd8c802c"
+  integrity sha512-zTOCEYwiQDChj5DV/sUqccv3jhdZqbhymztwcrW2LncIG2fPPkb1ceK5rmr0bdtxzJCXoWzZ95shA+uaSH8cKw==
+  dependencies:
+    node-gyp-build-optional-packages "5.1.1"
+  optionalDependencies:
+    "@cbor-extract/cbor-extract-darwin-arm64" "2.2.3"
+    "@cbor-extract/cbor-extract-darwin-x64" "2.2.3"
+    "@cbor-extract/cbor-extract-linux-arm" "2.2.3"
+    "@cbor-extract/cbor-extract-linux-arm64" "2.2.3"
+    "@cbor-extract/cbor-extract-linux-x64" "2.2.3"
+    "@cbor-extract/cbor-extract-win32-x64" "2.2.3"
+
 cbor-x@^1.6.4:
   version "1.6.4"
   resolved "https://registry.yarnpkg.com/cbor-x/-/cbor-x-1.6.4.tgz#c98cd492b8c3671e4b874b3a930f3f306d72da87"
   integrity sha512-UGKHjp6RHC6QuZ2yy5LCKm7MojM4716DwoSaqwQpaH4DvZvbBTGcoDNTiG9Y2lByXZYFEs9WRkS5tLl96IrF1Q==
   optionalDependencies:
     cbor-extract "^2.2.2"
+
+cbor-x@^1.6.9:
+  version "1.6.9"
+  resolved "https://registry.yarnpkg.com/cbor-x/-/cbor-x-1.6.9.tgz#adb129592c6183ad1d6c80b93a33ccfe3178e13f"
+  integrity sha512-TCT9XHLb4iPGQ99fpQjcTRncbus6cXHvSD/RY+bPrDACBCJKiQLmAM6r7/BgQcI5i+8h4gwp4vjfb6S6T8bPGw==
+  optionalDependencies:
+    cbor-extract "^2.2.3"
 
 chai@^6.2.2:
   version "6.2.2"
@@ -2902,6 +2989,11 @@ package-json-from-dist@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/package-json-from-dist/-/package-json-from-dist-1.0.1.tgz#4f1471a010827a86f94cfd9b0727e36d267de505"
   integrity sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==
+
+pako@^3.0.3:
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/pako/-/pako-3.0.3.tgz#c8cc604432e09f01a505abc2dbd3800db71a17d5"
+  integrity sha512-tmrebBBYI5FOw8QICGwJNqE8fotC8R+gwcxOvoFNv+GKehOI6Lc6YBolNcQNnC4v96l1wt7rh102ifD4kVeZAQ==
 
 parent-module@^1.0.0:
   version "1.0.1"

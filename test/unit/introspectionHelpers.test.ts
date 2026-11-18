@@ -9,6 +9,7 @@ const asAccessToken = (token: { clientId: string }) => token as unknown as Acces
 describe('introspectionAllowedPolicy', () => {
   beforeEach(() => {
     // Deterministic test fixture only; never use this value in a deployment.
+    vi.stubEnv('STATUS_LIST_ALLOWED_ORIGINS', 'https://status.example');
     vi.stubEnv('ABCA_CHALLENGE_SECRET', 'ab'.repeat(32));
     vi.stubEnv('DPOP_NONCE_SECRET', 'test-dpop-nonce-secret-0123456789ab');
   });
